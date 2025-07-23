@@ -18,8 +18,7 @@ interface EmployeeListProps {
 
 export const EmployeeList: React.FC<EmployeeListProps> = ({
   filters: initialFilters = {},
-  onEmployeeSelect,
-  onCreateEmployee
+  onEmployeeSelect
 }) => {
   const { checkPermission } = useAuthStore()
   const [filters, setFilters] = useState<EmployeeFilters>(initialFilters)
@@ -161,6 +160,9 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     入社日
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    退職日
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -195,6 +197,9 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {employee.hire_date ? format(new Date(employee.hire_date), 'yyyy/MM/dd') : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {employee.resign_date ? format(new Date(employee.resign_date), 'yyyy/MM/dd') : '-'}
                     </td>
                   </tr>
                 ))}

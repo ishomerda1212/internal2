@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
@@ -6,13 +6,13 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: Array<{ value: string; label: string }>
 }
 
-export const Select: React.FC<SelectProps> = ({
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(({
   label,
   error,
   options,
   className = '',
   ...props
-}) => {
+}, ref) => {
   const selectId = props.id || `select-${Math.random().toString(36).substr(2, 9)}`
   
   return (
@@ -23,6 +23,7 @@ export const Select: React.FC<SelectProps> = ({
         </label>
       )}
       <select
+        ref={ref}
         id={selectId}
         className={`
           block w-full rounded-md border-2 border-gray-400 shadow-sm px-4 py-3 text-base
@@ -44,4 +45,4 @@ export const Select: React.FC<SelectProps> = ({
       )}
     </div>
   )
-}
+})

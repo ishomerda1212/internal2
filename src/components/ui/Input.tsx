@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -6,13 +6,13 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   helpText?: string
 }
 
-export const Input: React.FC<InputProps> = ({
+export const Input = forwardRef<HTMLInputElement, InputProps>(({
   label,
   error,
   helpText,
   className = '',
   ...props
-}) => {
+}, ref) => {
   const inputId = props.id || `input-${Math.random().toString(36).substr(2, 9)}`
   
   return (
@@ -23,6 +23,7 @@ export const Input: React.FC<InputProps> = ({
         </label>
       )}
       <input
+        ref={ref}
         id={inputId}
         className={`
           block w-full rounded-md border-2 border-gray-400 shadow-sm px-4 py-3 text-base
@@ -41,4 +42,4 @@ export const Input: React.FC<InputProps> = ({
       )}
     </div>
   )
-}
+})

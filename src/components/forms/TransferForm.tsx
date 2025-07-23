@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -19,12 +19,8 @@ interface TransferFormProps {
 const schema = yup.object({
   organization_id: yup.string().required('配属先組織は必須です'),
   position: yup.string().required('役職は必須です'),
-  staff_rank: yup.string().optional(),
-  start_date: yup.string().required('開始日は必須です'),
-  end_date: yup.string().optional(),
-  transfer_type: yup.string().required('異動タイプは必須です'),
-  reason: yup.string().optional(),
-  notes: yup.string().optional()
+  staff_rank: yup.string().required('スタッフランクは必須です'),
+  start_date: yup.string().required('開始日は必須です')
 })
 
 type FormData = yup.InferType<typeof schema>
@@ -36,6 +32,9 @@ export const TransferForm: React.FC<TransferFormProps> = ({
 }) => {
   const { data: organizations = [] } = useOrganizations()
   const createTransfer = useCreateTransfer()
+  const [organizationOptions, setOrganizationOptions] = useState<{ value: string, label: string }[]>([
+    { value: '', label: '選択してください' }
+  ])
   
   const {
     register,
@@ -48,56 +47,68 @@ export const TransferForm: React.FC<TransferFormProps> = ({
     }
   })
   
-  // 組織オプション
-  const flattenOrganizations = (orgs: Organization[]): Organization[] => {
-    const result: Organization[] = []
-    const flatten = (orgList: Organization[]) => {
-      orgList.forEach(org => {
-        result.push(org)
-        if (org.children) {
-          flatten(org.children)
-        }
+  // 組織オプション（階層表示）
+  const getOrganizationHierarchy = (orgs: Organization[], level: number = 0): { value: string, label: string }[] => {
+    const result: { value: string, label: string }[] = []
+    
+    orgs.forEach(org => {
+      const indent = '　'.repeat(level) // 全角スペースでインデント
+      const hierarchyText = level > 0 ? `（${level}階層）` : ''
+      result.push({
+        value: org.id,
+        label: `${indent}${org.name}${hierarchyText}`
       })
-    }
-    flatten(orgs)
+      
+      if (org.children && org.children.length > 0) {
+        result.push(...getOrganizationHierarchy(org.children, level + 1))
+      }
+    })
+    
     return result
   }
   
-  const flatOrgs = flattenOrganizations(organizations)
-  const organizationOptions = [
-    { value: '', label: '選択してください' },
-    ...flatOrgs.map(org => ({
-      value: org.id,
-      label: `${org.name} (${org.type})`
-    }))
-  ]
-  
-  const transferTypeOptions = [
-    { value: '', label: '選択してください' },
-    { value: 'hire', label: '入社' },
-    { value: 'transfer', label: '異動' },
-    { value: 'promotion', label: '昇進' },
-    { value: 'demotion', label: '降格' },
-    { value: 'lateral', label: '横異動' }
-  ]
+  // organizationsデータが更新されたときにorganizationOptionsを再計算
+  useEffect(() => {
+    if (organizations && organizations.length > 0) {
+      const options = [
+        { value: '', label: '選択してください' },
+        ...getOrganizationHierarchy(organizations)
+      ]
+      setOrganizationOptions(options)
+      
+      // デバッグ用: 組織データを確認
+      console.log('TransferForm - organizations:', organizations)
+      console.log('TransferForm - organizationOptions:', options)
+    }
+  }, [organizations])
   
   const positionOptions = [
     { value: '', label: '選択してください' },
-    { value: '代表取締役', label: '代表取締役' },
+    { value: '代表取締役社長', label: '代表取締役社長' },
+    { value: '役員', label: '役員' },
+    { value: '本部長', label: '本部長' },
+    { value: 'グループマネージャー', label: 'グループマネージャー' },
     { value: '部長', label: '部長' },
     { value: '課長', label: '課長' },
-    { value: '主任', label: '主任' },
+    { value: '室長', label: '室長' },
+    { value: '店長', label: '店長' },
+    { value: '副店長', label: '副店長' },
     { value: '係長', label: '係長' },
+    { value: '主任', label: '主任' },
     { value: '一般', label: '一般' }
   ]
   
   const staffRankOptions = [
     { value: '', label: '選択してください' },
-    { value: '1級', label: '1級' },
-    { value: '2級', label: '2級' },
-    { value: '3級', label: '3級' },
-    { value: '4級', label: '4級' },
-    { value: '5級', label: '5級' }
+    { value: 'S', label: 'S' },
+    { value: 'A', label: 'A' },
+    { value: 'B', label: 'B' },
+    { value: 'C', label: 'C' },
+    { value: 'D', label: 'D' },
+    { value: 'E', label: 'E' },
+    { value: 'F', label: 'F' },
+    { value: 'G', label: 'G' },
+    { value: 'H', label: 'H' }
   ]
   
   const onSubmit = async (data: FormData) => {
@@ -106,12 +117,9 @@ export const TransferForm: React.FC<TransferFormProps> = ({
         employee_id: employeeId,
         organization_id: data.organization_id,
         position: data.position,
-        staff_rank: data.staff_rank || undefined,
+        staff_rank: data.staff_rank,
         start_date: data.start_date,
-        end_date: data.end_date || undefined,
-        transfer_type: data.transfer_type as 'hire' | 'transfer' | 'promotion' | 'demotion' | 'lateral',
-        reason: data.reason || undefined,
-        notes: data.notes || undefined
+        transfer_type: 'transfer' // デフォルトで異動
       })
       onSuccess()
       onClose()
@@ -150,17 +158,10 @@ export const TransferForm: React.FC<TransferFormProps> = ({
             />
             
             <Select
-              label="職階"
+              label="スタッフランク"
               {...register('staff_rank')}
               options={staffRankOptions}
               error={errors.staff_rank?.message}
-            />
-            
-            <Select
-              label="異動タイプ"
-              {...register('transfer_type')}
-              options={transferTypeOptions}
-              error={errors.transfer_type?.message}
             />
             
             <Input
@@ -169,36 +170,6 @@ export const TransferForm: React.FC<TransferFormProps> = ({
               {...register('start_date')}
               error={errors.start_date?.message}
             />
-            
-            <Input
-              label="終了日"
-              type="date"
-              {...register('end_date')}
-              error={errors.end_date?.message}
-              helpText="現在の配属の場合は空欄"
-            />
-          </div>
-          
-          <Input
-            label="異動理由"
-            {...register('reason')}
-            error={errors.reason?.message}
-            placeholder="例: 組織改編に伴う異動"
-          />
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              備考
-            </label>
-            <textarea
-              {...register('notes')}
-              rows={3}
-              className="block w-full rounded-md border-2 border-gray-400 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-500 px-4 py-3 text-base hover:border-gray-500 transition-colors"
-              placeholder="特記事項があれば入力してください"
-            />
-            {errors.notes && (
-              <p className="text-sm text-red-600 mt-1">{errors.notes.message}</p>
-            )}
           </div>
           
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">

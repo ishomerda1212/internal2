@@ -51,6 +51,9 @@ export type Database = {
           resign_date?: string
           email?: string
           phone?: string
+          gmail?: string
+          is_mail?: string
+          common_password?: string
           remarks?: string
           created_at: string
           updated_at: string
@@ -67,10 +70,15 @@ export type Database = {
           gender?: string
           status?: string
           hire_date?: string
+          resign_date?: string
           email?: string
           phone?: string
+          gmail?: string
+          is_mail?: string
+          common_password?: string
         }
         Update: {
+          employee_id?: string
           last_name?: string
           first_name?: string
           last_name_kana?: string
@@ -84,6 +92,9 @@ export type Database = {
           resign_date?: string
           email?: string
           phone?: string
+          gmail?: string
+          is_mail?: string
+          common_password?: string
           remarks?: string
         }
       }

@@ -28,6 +28,9 @@ export interface Employee {
   resign_date?: string
   email?: string
   phone?: string
+  gmail?: string
+  is_mail?: string
+  common_password?: string
   remarks?: string
   created_at: string
   updated_at: string

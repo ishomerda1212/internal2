@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -19,18 +19,21 @@ const schema = yup.object({
   employee_id: yup.string().required('社員番号は必須です'),
   last_name: yup.string().required('姓は必須です'),
   first_name: yup.string().required('名は必須です'),
-  last_name_kana: yup.string().required('姓（カナ）は必須です'),
-  first_name_kana: yup.string().required('名（カナ）は必須です'),
-  roman_name: yup.string().optional(),
-  job_type: yup.string().optional(),
-  employment_type: yup.string().optional(),
-  gender: yup.string().optional(),
+  last_name_kana: yup.string().optional().default(''),
+  first_name_kana: yup.string().optional().default(''),
+  roman_name: yup.string().optional().default(''),
+  job_type: yup.string().optional().default(''),
+  employment_type: yup.string().optional().default(''),
+  gender: yup.string().optional().default(''),
   status: yup.string().required('ステータスは必須です'),
-  hire_date: yup.string().optional(),
-  resign_date: yup.string().optional(),
-  email: yup.string().email('正しいメールアドレスを入力してください').optional(),
-  phone: yup.string().optional(),
-  remarks: yup.string().optional()
+  hire_date: yup.string().optional().default(''),
+  resign_date: yup.string().optional().default(''),
+  email: yup.string().email('正しいメールアドレスを入力してください').optional().default(''),
+  phone: yup.string().optional().default(''),
+  gmail: yup.string().email('正しいGmailアドレスを入力してください').optional().default(''),
+  is_mail: yup.string().email('正しいISメールアドレスを入力してください').optional().default(''),
+  common_password: yup.string().optional().default(''),
+  remarks: yup.string().optional().default('')
 })
 
 type FormData = yup.InferType<typeof schema>
@@ -42,37 +45,58 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
 }) => {
   const updateEmployee = useUpdateEmployee()
   
+  // デバッグ用: employeeデータを確認
+  console.log('EmployeeEditForm - employee data:', employee)
+  
+  const defaultValues = {
+    employee_id: employee.employee_id,
+    last_name: employee.last_name,
+    first_name: employee.first_name,
+    last_name_kana: employee.last_name_kana,
+    first_name_kana: employee.first_name_kana,
+    roman_name: employee.roman_name || '',
+    job_type: employee.job_type || '',
+    employment_type: employee.employment_type || '',
+    gender: employee.gender || '',
+    status: employee.status,
+    hire_date: employee.hire_date ? employee.hire_date.split('T')[0] : '',
+    resign_date: employee.resign_date ? employee.resign_date.split('T')[0] : '',
+    email: employee.email || '',
+    phone: employee.phone || '',
+    gmail: employee.gmail || '',
+    is_mail: employee.is_mail || '',
+    common_password: employee.common_password || '',
+    remarks: employee.remarks || ''
+  }
+  
+  // デバッグ用: defaultValuesを確認
+  console.log('EmployeeEditForm - defaultValues:', defaultValues)
+  
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting }
+    formState: { errors, isSubmitting },
+    reset
   } = useForm<FormData>({
     resolver: yupResolver(schema),
-    defaultValues: {
-      employee_id: employee.employee_id,
-      last_name: employee.last_name,
-      first_name: employee.first_name,
-      last_name_kana: employee.last_name_kana,
-      first_name_kana: employee.first_name_kana,
-      roman_name: employee.roman_name || '',
-      job_type: employee.job_type || '',
-      employment_type: employee.employment_type || '',
-      gender: employee.gender || '',
-      status: employee.status,
-      hire_date: employee.hire_date || '',
-      resign_date: employee.resign_date || '',
-      email: employee.email || '',
-      phone: employee.phone || '',
-      remarks: employee.remarks || ''
-    }
+    defaultValues
   })
+  
+  // employeeデータが変更されたときにフォームをリセット
+  useEffect(() => {
+    if (employee) {
+      reset(defaultValues)
+    }
+  }, [employee, reset])
   
   const jobTypeOptions = [
     { value: '', label: '選択してください' },
+    { value: '管理職', label: '管理職' },
     { value: '営業', label: '営業' },
-    { value: '事務', label: '事務' },
-    { value: '設計', label: '設計' },
-    { value: '施工管理', label: '施工管理' }
+    { value: '営工', label: '営工' },
+    { value: '施工管理', label: '施工管理' },
+    { value: '現場補助', label: '現場補助' },
+    { value: '内勤', label: '内勤' }
   ]
   
   const employmentTypeOptions = [
@@ -80,6 +104,7 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
     { value: '代表', label: '代表' },
     { value: '役員', label: '役員' },
     { value: '正社員', label: '正社員' },
+    { value: '契約社員', label: '契約社員' },
     { value: 'パート', label: 'パート' }
   ]
   
@@ -98,7 +123,11 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
   
   const onSubmit = async (data: FormData) => {
     try {
-      await updateEmployee.mutateAsync({
+      console.log('EmployeeEditForm - 送信データ:', data)
+      console.log('EmployeeEditForm - 社員ID:', employee.id)
+      console.log('EmployeeEditForm - 元のemployeeデータ:', employee)
+      
+      const updateData = {
         id: employee.id,
         employee_id: data.employee_id,
         last_name: data.last_name,
@@ -114,12 +143,28 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
         resign_date: data.resign_date || undefined,
         email: data.email || undefined,
         phone: data.phone || undefined,
+        gmail: data.gmail || undefined,
+        is_mail: data.is_mail || undefined,
+        common_password: data.common_password || undefined,
         remarks: data.remarks || undefined
-      })
+      }
+      
+      console.log('EmployeeEditForm - 更新データ:', updateData)
+      console.log('EmployeeEditForm - 更新データ（JSON）:', JSON.stringify(updateData, null, 2))
+      
+      const result = await updateEmployee.mutateAsync(updateData)
+      console.log('EmployeeEditForm - 更新結果:', result)
+      console.log('EmployeeEditForm - 更新結果（JSON）:', JSON.stringify(result, null, 2))
+      
       onSuccess()
       onClose()
     } catch (error) {
       console.error('社員更新エラー:', error)
+      // エラーの詳細を表示
+      if (error instanceof Error) {
+        console.error('エラーメッセージ:', error.message)
+        console.error('エラースタック:', error.stack)
+      }
     }
   }
   
@@ -242,6 +287,29 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
                 label="電話番号"
                 {...register('phone')}
                 error={errors.phone?.message}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              <Input
+                label="Gmail"
+                type="email"
+                {...register('gmail')}
+                error={errors.gmail?.message}
+              />
+              
+              <Input
+                label="ISメール"
+                type="email"
+                {...register('is_mail')}
+                error={errors.is_mail?.message}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-6 mt-4">
+              <Input
+                label="共通パスワード"
+                type="password"
+                {...register('common_password')}
+                error={errors.common_password?.message}
               />
             </div>
           </div>

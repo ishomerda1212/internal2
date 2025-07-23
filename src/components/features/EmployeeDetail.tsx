@@ -23,7 +23,18 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
 }) => {
   const { checkPermission } = useAuthStore()
   const { data: employee, isLoading } = useEmployee(employeeId)
-  const { data: transferHistory = [] } = useTransferHistory(employeeId)
+  // 一時的に異動履歴機能を無効化
+  const transferHistory: any[] = []
+  const transferLoading = false
+  const transferError = null
+  
+  // デバッグ用: transfer_historyエラーを確認
+  if (transferError) {
+    console.error('EmployeeDetail - transfer_historyエラー:', transferError)
+  }
+  
+  // デバッグ用: employeeデータを確認
+  console.log('EmployeeDetail - employee data:', employee)
   const [activeTab, setActiveTab] = useState<'basic' | 'transfer' | 'qualifications'>('basic')
   const [showEditForm, setShowEditForm] = useState(false)
   const [showTransferForm, setShowTransferForm] = useState(false)
@@ -337,7 +348,11 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
             ) : undefined
           }
         >
-          {transferHistory.length === 0 ? (
+          {transferLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            </div>
+          ) : transferHistory.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>異動履歴がありません</p>
@@ -430,8 +445,9 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
           employee={employee}
           onClose={() => setShowEditForm(false)}
           onSuccess={() => {
-            // データを再取得するためにクエリを無効化
-            // React Queryが自動的に再フェッチする
+            console.log('EmployeeDetail - 編集成功、フォームを閉じる')
+            console.log('EmployeeDetail - 現在のemployeeデータ:', employee)
+            setShowEditForm(false)
           }}
         />
       )}

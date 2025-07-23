@@ -45,6 +45,8 @@ NODE_ENV=development
 2. `database/schema.sql`ファイルの内容をコピーして実行
 3. これにより以下のテーブルが作成されます：
    - `organizations` - 組織テーブル
+   - `employees` - 社員テーブル
+   - `transfer_history` - 異動履歴テーブル
    - サンプルデータも自動的に挿入されます
 
 ## 開発サーバーの起動
