@@ -32,6 +32,12 @@ export const useEmployees = (filters?: EmployeeFilters) => {
         filteredEmployees = filteredEmployees.filter(emp => emp.employment_type === filters.employment_type)
       }
       
+      if (filters?.organization_id) {
+        filteredEmployees = filteredEmployees.filter(emp => 
+          emp.current_assignment?.organization_id === filters.organization_id
+        )
+      }
+      
       return filteredEmployees
     }
   })

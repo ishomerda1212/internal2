@@ -8,6 +8,8 @@ import { Header } from './components/layout/Header'
 import { EmployeeList } from './components/features/EmployeeList'
 import { EmployeeDetail } from './components/features/EmployeeDetail'
 import { OrganizationTree } from './components/features/OrganizationTree'
+import { OrganizationDetail } from './components/features/OrganizationDetail'
+import { Building2 } from 'lucide-react'
 import { CompanyCarList } from './components/features/CompanyCarList'
 import { CompanyCarDetail } from './components/features/CompanyCarDetail'
 import { EmployeeCarAssignment } from './components/features/EmployeeCarAssignment'
@@ -19,6 +21,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('employees')
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null)
+  const [organizationViewMode, setOrganizationViewMode] = useState<'tree' | 'detail'>('tree')
   const [selectedCar, setSelectedCar] = useState<CompanyCar | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list')
   
@@ -58,6 +61,15 @@ function App() {
     setViewMode('detail')
   }
   
+  const handleOrganizationSelect = (org: Organization) => {
+    setSelectedOrganization(org)
+    setOrganizationViewMode('tree')
+  }
+  
+  const handleOrganizationBack = () => {
+    setOrganizationViewMode('tree')
+  }
+  
   const handleBackToList = () => {
     setSelectedEmployee(null)
     setViewMode('list')
@@ -84,40 +96,43 @@ function App() {
         )
       
       case 'organizations':
+        if (organizationViewMode === 'detail' && selectedOrganization) {
+          return (
+            <OrganizationDetail
+              organizationId={selectedOrganization.id}
+              onViewFullDetail={handleOrganizationBack}
+              onBack={handleOrganizationBack}
+            />
+          )
+        }
+        
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <OrganizationTree
               selectedOrgId={selectedOrganization?.id}
-              onOrganizationSelect={setSelectedOrganization}
+              onOrganizationSelect={handleOrganizationSelect}
               onDeleteOrganization={(org) => {
                 // TODO: Show delete confirmation
                 console.log('Delete organization', org)
               }}
             />
             
-            {selectedOrganization && (
+            {selectedOrganization ? (
+              <OrganizationDetail
+                organizationId={selectedOrganization.id}
+                onViewFullDetail={() => setOrganizationViewMode('detail')}
+                isCompact={true}
+              />
+            ) : (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  {selectedOrganization.name} の詳細
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">組織タイプ</dt>
-                    <dd className="text-sm text-gray-900">{selectedOrganization.type}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">階層レベル</dt>
-                    <dd className="text-sm text-gray-900">{selectedOrganization.level}</dd>
-                  </div>
-                  {selectedOrganization.representative && (
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">責任者</dt>
-                      <dd className="text-sm text-gray-900">
-                        {selectedOrganization.representative.last_name}{' '}
-                        {selectedOrganization.representative.first_name}
-                      </dd>
-                    </div>
-                  )}
+                <div className="text-center py-12">
+                  <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    組織詳細
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    左側の組織を選択すると詳細情報が表示されます
+                  </p>
                 </div>
               </div>
             )}
