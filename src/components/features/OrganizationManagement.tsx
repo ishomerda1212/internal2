@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Edit, Trash2, History, Building2, Calendar, Users, Clock } from 'lucide-react'
+import { Plus, Edit, Trash2, Clock } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'

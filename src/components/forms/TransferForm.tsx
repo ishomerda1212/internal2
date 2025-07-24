@@ -6,10 +6,9 @@ import { X } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
-import { useOrganizationsByLevel, useOrganizationsByParent } from '../../hooks/useOrganizations'
+import { useOrganizationsByLevel } from '../../hooks/useOrganizations'
 import { useCreateTransfer } from '../../hooks/useTransferHistory'
 import { useStaffRankMasterByOrganization } from '../../hooks/useStaffRankMaster'
-import type { Organization } from '../../types'
 
 interface TransferFormProps {
   employeeId: string

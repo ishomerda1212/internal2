@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { mockCompanyCars, mockCarUsageHistory, mockEmployees } from '../data/mockData'
-import type { CompanyCar, CarUsageHistory } from '../types'
+import type { CompanyCar } from '../types'
 
 export const useCompanyCars = () => {
   return useQuery({

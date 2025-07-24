@@ -56,7 +56,7 @@ export interface TransferHistory {
   end_date?: string
   reason?: string
   notes?: string
-  organization_snapshot?: any
+  organization_snapshot?: unknown
   created_at: string
   updated_at: string
   organization_level_1?: Organization

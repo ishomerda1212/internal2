@@ -63,8 +63,7 @@ export const StaffRankMasterForm: React.FC<StaffRankMasterFormProps> = ({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    watch,
-    setValue
+    watch
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: staffRankMaster ? {
@@ -93,12 +92,12 @@ export const StaffRankMasterForm: React.FC<StaffRankMasterFormProps> = ({
   const watchedValues = watch()
   const totalCost = watchedValues.personnel_costs + watchedValues.maintenance_costs + watchedValues.director_cost + watchedValues.ad_costs
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: yup.InferType<typeof schema>) => {
     try {
-      // 空文字列の日付をnullに変換
+      // 空文字列の日付をundefinedに変換
       const processedData = {
         ...data,
-        end_date: data.end_date === '' || data.end_date === undefined ? null : data.end_date
+        end_date: data.end_date === '' || data.end_date === undefined ? undefined : data.end_date
       }
 
       if (staffRankMaster) {

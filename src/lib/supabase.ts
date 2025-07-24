@@ -179,7 +179,7 @@ export type Database = {
           end_date: string | null
           reason: string | null
           notes: string | null
-          organization_snapshot: any | null
+          organization_snapshot: unknown | null
           created_at: string
           updated_at: string
         }
@@ -194,7 +194,7 @@ export type Database = {
           end_date?: string | null
           reason?: string | null
           notes?: string | null
-          organization_snapshot?: any | null
+          organization_snapshot?: unknown | null
         }
         Update: {
           employee_id?: string
@@ -207,7 +207,7 @@ export type Database = {
           end_date?: string | null
           reason?: string | null
           notes?: string | null
-          organization_snapshot?: any | null
+          organization_snapshot?: unknown | null
         }
       }
       employees_with_current_assignment: {

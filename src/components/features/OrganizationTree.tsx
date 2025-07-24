@@ -12,13 +12,11 @@ import type { Organization } from '../../types'
 interface OrganizationTreeProps {
   selectedOrgId?: string
   onOrganizationSelect: (org: Organization) => void
-  onDeleteOrganization: (org: Organization) => void
 }
 
 export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
   selectedOrgId,
-  onOrganizationSelect,
-  onDeleteOrganization
+  onOrganizationSelect
 }) => {
   const { data: organizations = [], isLoading } = useOrganizationTree()
   const { checkPermission } = useAuthStore()
@@ -28,8 +26,6 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
 
   
   const canCreate = checkPermission('create', 'organizations')
-  const canUpdate = checkPermission('update', 'organizations')
-  const canDelete = checkPermission('delete', 'organizations')
   
   const toggleExpanded = (orgId: string) => {
     const newExpanded = new Set(expandedNodes)

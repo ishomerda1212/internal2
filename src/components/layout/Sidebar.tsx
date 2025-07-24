@@ -19,7 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) =
     { id: 'settings', label: '設定', icon: Settings, permission: null }
   ]
   
-  const subMenuItems: Record<string, Array<{ id: string; label: string; icon: any; permission: string[] }>> = {
+  const subMenuItems: Record<string, Array<{ id: string; label: string; icon: React.ComponentType<{ className?: string }>; permission: string[] }>> = {
     'employees': [
       { id: 'upcoming-employees', label: '入社予定者', icon: UserPlus, permission: ['employees', 'read'] }
     ],

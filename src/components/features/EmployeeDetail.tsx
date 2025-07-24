@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowLeft, Edit, Plus, Calendar, MapPin, Phone, Mail, User, Briefcase, Clock, FileText } from 'lucide-react'
+import { ArrowLeft, Edit, Plus, Calendar, MapPin, Phone, Mail, User, Briefcase, FileText } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
@@ -9,7 +9,7 @@ import { QualificationForm } from '../forms/QualificationForm'
 import { useEmployee } from '../../hooks/useEmployees'
 import { useTransferHistory } from '../../hooks/useTransferHistory'
 import { useAuthStore } from '../../stores/authStore'
-import type { Employee } from '../../types'
+
 import { format } from 'date-fns'
 
 interface EmployeeDetailProps {
@@ -56,22 +56,7 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
     }
   }
   
-  const getTransferTypeBadge = (type: string) => {
-    switch (type) {
-      case 'hire':
-        return <Badge variant="success">入社</Badge>
-      case 'transfer':
-        return <Badge variant="info">異動</Badge>
-      case 'promotion':
-        return <Badge variant="warning">昇進</Badge>
-      case 'demotion':
-        return <Badge variant="default">降格</Badge>
-      case 'lateral':
-        return <Badge variant="default">横異動</Badge>
-      default:
-        return <Badge variant="default">{type}</Badge>
-    }
-  }
+
   
   if (isLoading) {
     return (

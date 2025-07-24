@@ -3,7 +3,7 @@ import { useStaffRankMaster, useDeleteStaffRankMaster } from '../../hooks/useSta
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
-import { Plus, Edit, Trash2, DollarSign, Calendar, Building2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, DollarSign, Building2, ChevronDown, ChevronRight } from 'lucide-react'
 import type { StaffRankMaster } from '../../types'
 
 interface StaffRankMasterListProps {

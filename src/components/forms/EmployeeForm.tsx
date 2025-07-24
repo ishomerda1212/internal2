@@ -32,7 +32,7 @@ const schema = yup.object({
   remarks: yup.string().optional()
 })
 
-type FormData = yup.InferType<typeof schema>
+type EmployeeFormData = yup.InferType<typeof schema>
 
 export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   onClose,
@@ -45,7 +45,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     register,
     handleSubmit,
     formState: { errors, isSubmitting }
-  } = useForm<FormData>({
+  } = useForm<EmployeeFormData>({
     resolver: yupResolver(schema),
     defaultValues: {
       status: 'upcoming'
@@ -67,7 +67,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     return result
   }
   
-  const flatOrgs = flattenOrganizations(organizations)
+
   
   const jobTypeOptions = [
     { value: '', label: '選択してください' },
@@ -98,7 +98,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     { value: 'resigned', label: '退職済み' }
   ]
   
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: EmployeeFormData) => {
     try {
       await createEmployee.mutateAsync({
         employee_id: data.employee_id,
