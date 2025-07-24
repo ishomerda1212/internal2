@@ -11,6 +11,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) =
   const { user, checkPermission } = useAuthStore()
   const [expandedMenus, setExpandedMenus] = React.useState<Set<string>>(new Set(['organization-tree']))
   
+  console.log('Sidebar - 現在のユーザー:', user)
+  
   const menuItems = [
     { id: 'employees', label: '社員管理', icon: Users, permission: ['employees', 'read'] },
     { id: 'organization-tree', label: '組織構造', icon: Building2, permission: ['organizations', 'read'] },
@@ -31,9 +33,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) =
     ]
   }
   
-  const visibleItems = menuItems.filter(item => 
-    !item.permission || checkPermission(item.permission[1], item.permission[0])
-  )
+  const visibleItems = menuItems.filter(item => {
+    const hasPermission = !item.permission || checkPermission(item.permission[1], item.permission[0])
+    console.log(`Sidebar - ${item.label}: permission=${item.permission}, hasPermission=${hasPermission}`)
+    return hasPermission
+  })
   
   const toggleMenu = (menuId: string) => {
     const newExpanded = new Set(expandedMenus)

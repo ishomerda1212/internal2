@@ -5,6 +5,7 @@ import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
 import { EmployeeEditForm } from '../forms/EmployeeEditForm'
 import { TransferForm } from '../forms/TransferForm'
+import { TransferEditForm } from '../forms/TransferEditForm'
 import { QualificationForm } from '../forms/QualificationForm'
 import { useEmployee } from '../../hooks/useEmployees'
 import { useTransferHistory } from '../../hooks/useTransferHistory'
@@ -38,10 +39,13 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
   const [activeTab, setActiveTab] = useState<'basic' | 'transfer' | 'qualifications'>('basic')
   const [showEditForm, setShowEditForm] = useState(false)
   const [showTransferForm, setShowTransferForm] = useState(false)
+  const [showTransferEditForm, setShowTransferEditForm] = useState(false)
+  const [editingTransfer, setEditingTransfer] = useState<any>(null)
   const [showQualificationForm, setShowQualificationForm] = useState(false)
   
   const canUpdate = checkPermission('update', 'employees')
   const canCreateTransfer = checkPermission('create', 'transfers')
+  const canUpdateTransfer = checkPermission('update', 'transfers')
   
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -360,53 +364,69 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
             <div className="space-y-4">
               {transferHistory.map((transfer) => (
                 <div key={transfer.id} className="border rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">配属先</label>
-                      <p className="text-sm">
-                        {(() => {
-                          const orgNames = []
-                          
-                          // 第一階層（部）
-                          if (transfer.organization_level_1?.name) {
-                            orgNames.push(`${transfer.organization_level_1.name} (${transfer.organization_level_1.type})`)
-                          }
-                          
-                          // 第二階層（チーム）
-                          if (transfer.organization_level_2?.name) {
-                            orgNames.push(`${transfer.organization_level_2.name} (${transfer.organization_level_2.type})`)
-                          }
-                          
-                          // 第三階層（課・店・室）
-                          if (transfer.organization_level_3?.name) {
-                            orgNames.push(`${transfer.organization_level_3.name} (${transfer.organization_level_3.type})`)
-                          }
-                          
-                          // デバッグ用ログ
-                          console.log('配属先表示デバッグ:', {
-                            transfer_id: transfer.id,
-                            level_1: transfer.organization_level_1?.name,
-                            level_2: transfer.organization_level_2?.name,
-                            level_3: transfer.organization_level_3?.name,
-                            orgNames: orgNames
-                          })
-                          
-                          return orgNames.length > 0 ? orgNames.join(' → ') : '未設定'
-                        })()}
-                      </p>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">配属先</label>
+                        <p className="text-sm">
+                          {(() => {
+                            const orgNames = []
+                            
+                            // 第一階層（部）
+                            if (transfer.organization_level_1?.name) {
+                              orgNames.push(`${transfer.organization_level_1.name} (${transfer.organization_level_1.type})`)
+                            }
+                            
+                            // 第二階層（チーム）
+                            if (transfer.organization_level_2?.name) {
+                              orgNames.push(`${transfer.organization_level_2.name} (${transfer.organization_level_2.type})`)
+                            }
+                            
+                            // 第三階層（課・店・室）
+                            if (transfer.organization_level_3?.name) {
+                              orgNames.push(`${transfer.organization_level_3.name} (${transfer.organization_level_3.type})`)
+                            }
+                            
+                            // デバッグ用ログ
+                            console.log('配属先表示デバッグ:', {
+                              transfer_id: transfer.id,
+                              level_1: transfer.organization_level_1?.name,
+                              level_2: transfer.organization_level_2?.name,
+                              level_3: transfer.organization_level_3?.name,
+                              orgNames: orgNames
+                            })
+                            
+                            return orgNames.length > 0 ? orgNames.join(' → ') : '未設定'
+                          })()}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">役職</label>
+                        <p className="text-sm">{transfer.position || '未設定'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">スタッフランク</label>
+                        <p className="text-sm">{transfer.staff_rank_master?.staff_rank || '未設定'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">開始日</label>
+                        <p className="text-sm">{new Date(transfer.start_date).toLocaleDateString('ja-JP')}</p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">役職</label>
-                      <p className="text-sm">{transfer.position || '未設定'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">スタッフランク</label>
-                      <p className="text-sm">{transfer.staff_rank_master?.staff_rank || '未設定'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">開始日</label>
-                      <p className="text-sm">{new Date(transfer.start_date).toLocaleDateString('ja-JP')}</p>
-                    </div>
+                    {canUpdateTransfer && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingTransfer(transfer)
+                          setShowTransferEditForm(true)
+                        }}
+                        className="ml-4"
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        編集
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -462,6 +482,21 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
           onSuccess={() => {
             console.log('TransferForm - 異動記録追加成功')
             // React Queryが自動的に再フェッチする
+          }}
+        />
+      )}
+      
+      {showTransferEditForm && editingTransfer && (
+        <TransferEditForm
+          transferHistory={editingTransfer}
+          onClose={() => {
+            setShowTransferEditForm(false)
+            setEditingTransfer(null)
+          }}
+          onSuccess={() => {
+            console.log('EmployeeDetail - 異動記録編集成功、フォームを閉じる')
+            setShowTransferEditForm(false)
+            setEditingTransfer(null)
           }}
         />
       )}

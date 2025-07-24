@@ -350,19 +350,29 @@ export const useOrganizationsByParent = (parentId: string) => {
   return useQuery({
     queryKey: ['organizations', 'parent', parentId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // parentIdが空文字列の場合は、親組織がない組織（第1階層）を取得
+      const query = supabase
         .from('organizations')
         .select('*')
         .eq('is_current', true)
-        .eq('parent_id', parentId)
         .order('name', { ascending: true })
 
-      if (error) {
-        throw new Error(`親組織${parentId}の子組織データの取得に失敗しました: ${error.message}`)
+      if (parentId === '') {
+        // 第1階層の組織を取得
+        const { data, error } = await query.eq('level', 1)
+        if (error) {
+          throw new Error(`第1階層の組織データの取得に失敗しました: ${error.message}`)
+        }
+        return data || []
+      } else {
+        // 指定された親組織の子組織を取得
+        const { data, error } = await query.eq('parent_id', parentId)
+        if (error) {
+          throw new Error(`親組織${parentId}の子組織データの取得に失敗しました: ${error.message}`)
+        }
+        return data || []
       }
-
-      return data || []
     },
-    enabled: !!parentId
+    enabled: true // 常に有効にする
   })
 }

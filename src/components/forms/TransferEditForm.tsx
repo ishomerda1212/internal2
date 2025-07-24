@@ -7,12 +7,12 @@ import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { useOrganizations } from '../../hooks/useOrganizations'
-import { useCreateTransfer } from '../../hooks/useTransferHistory'
+import { useUpdateTransfer } from '../../hooks/useTransferHistory'
 import { useStaffRankMasterByOrganization } from '../../hooks/useStaffRankMaster'
-import type { Organization } from '../../types'
+import type { Organization, TransferHistory } from '../../types'
 
-interface TransferFormProps {
-  employeeId: string
+interface TransferEditFormProps {
+  transferHistory: TransferHistory
   onClose: () => void
   onSuccess: () => void
 }
@@ -28,8 +28,8 @@ const schema = yup.object({
 
 type FormData = yup.InferType<typeof schema>
 
-export const TransferForm: React.FC<TransferFormProps> = ({
-  employeeId,
+export const TransferEditForm: React.FC<TransferEditFormProps> = ({
+  transferHistory,
   onClose,
   onSuccess
 }) => {
@@ -55,7 +55,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({
         return org.parent_id === selectedLevel1Id
       })
     : []
-  const createTransfer = useCreateTransfer()
+  const updateTransfer = useUpdateTransfer()
   
   // 選択された組織に基づいてスタッフランクマスターを取得
   const getStaffRankMasterOrganizationId = () => {
@@ -78,13 +78,13 @@ export const TransferForm: React.FC<TransferFormProps> = ({
   const { data: staffRankMasters } = useStaffRankMasterByOrganization(selectedOrgId)
   
   // デバッグ用ログ
-  console.log('TransferForm - 選択された組織ID:', {
+  console.log('TransferEditForm - 選択された組織ID:', {
     selectedLevel1Id,
     selectedLevel2Id,
     selectedLevel3Id,
     selectedOrgId
   })
-  console.log('TransferForm - スタッフランクマスター:', staffRankMasters)
+  console.log('TransferEditForm - スタッフランクマスター:', staffRankMasters)
   
   const {
     register,
@@ -95,12 +95,12 @@ export const TransferForm: React.FC<TransferFormProps> = ({
   } = useForm<FormData>({
     resolver: yupResolver(schema),
     defaultValues: {
-      organization_level_1_id: '',
-      organization_level_2_id: '',
-      organization_level_3_id: '',
-      position: '',
-      staff_rank_master_id: '',
-      start_date: new Date().toISOString().split('T')[0]
+      organization_level_1_id: transferHistory.organization_level_1_id || '',
+      organization_level_2_id: transferHistory.organization_level_2_id || '',
+      organization_level_3_id: transferHistory.organization_level_3_id || '',
+      position: transferHistory.position || '',
+      staff_rank_master_id: transferHistory.staff_rank_master_id || '',
+      start_date: transferHistory.start_date
     }
   })
 
@@ -154,7 +154,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({
   }, [watchedLevel3Id])
 
   // デバッグ用：watchの値も確認
-  console.log('TransferForm - watch値:', {
+  console.log('TransferEditForm - watch値:', {
     watchedLevel1Id,
     watchedLevel2Id,
     watchedLevel3Id
@@ -184,27 +184,29 @@ export const TransferForm: React.FC<TransferFormProps> = ({
     })) || [])
   ]
   
-  console.log('TransferForm - スタッフランクオプション:', staffRankOptions)
+  console.log('TransferEditForm - スタッフランクオプション:', staffRankOptions)
 
-    const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     try {
       const transferData = {
-        employee_id: employeeId,
-        organization_level_1_id: data.organization_level_1_id === '' ? null : data.organization_level_1_id,
-        organization_level_2_id: data.organization_level_2_id === '' ? null : data.organization_level_2_id,
-        organization_level_3_id: data.organization_level_3_id === '' ? null : data.organization_level_3_id,
-        position: data.position || null,
-        staff_rank_master_id: data.staff_rank_master_id === '' ? null : data.staff_rank_master_id,
+        organization_level_1_id: data.organization_level_1_id === '' ? undefined : data.organization_level_1_id,
+        organization_level_2_id: data.organization_level_2_id === '' ? undefined : data.organization_level_2_id,
+        organization_level_3_id: data.organization_level_3_id === '' ? undefined : data.organization_level_3_id,
+        position: data.position || '',
+        staff_rank_master_id: data.staff_rank_master_id === '' ? undefined : data.staff_rank_master_id,
         start_date: data.start_date
       }
       
-      console.log('送信データ:', transferData)
+      console.log('更新データ:', transferData)
       
-      await createTransfer.mutateAsync(transferData)
+      await updateTransfer.mutateAsync({
+        id: transferHistory.id,
+        ...transferData
+      } as any)
       onSuccess()
       onClose()
     } catch (error) {
-      console.error('異動記録作成エラー:', error)
+      console.error('異動記録更新エラー:', error)
     }
   }
 
@@ -212,7 +214,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">異動記録追加</h2>
+          <h2 className="text-lg font-semibold text-gray-900">異動記録編集</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -298,11 +300,11 @@ export const TransferForm: React.FC<TransferFormProps> = ({
               type="submit"
               loading={isSubmitting}
             >
-              追加
+              更新
             </Button>
           </div>
         </form>
       </div>
     </div>
   )
-}
+} 

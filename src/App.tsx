@@ -15,6 +15,8 @@ import { CompanyCarList } from './components/features/CompanyCarList'
 import { CompanyCarDetail } from './components/features/CompanyCarDetail'
 import { EmployeeCarAssignment } from './components/features/EmployeeCarAssignment'
 import { StaffRankMasterManagement } from './components/features/StaffRankMasterManagement'
+import { AuthProvider } from './components/auth/AuthProvider'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
 
 // Types
 import type { Employee, Organization, CompanyCar } from './types'
@@ -120,10 +122,6 @@ function App() {
             <OrganizationTree
               selectedOrgId={selectedOrganization?.id}
               onOrganizationSelect={handleOrganizationSelect}
-              onDeleteOrganization={(org) => {
-                // TODO: Show delete confirmation
-                console.log('Delete organization', org)
-              }}
             />
             
             {selectedOrganization ? (
@@ -195,23 +193,27 @@ function App() {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar 
-          currentPage={currentPage}
-          onPageChange={setCurrentPage}
-        />
-        
-        <div className="flex-1 flex flex-col">
-          <Header 
-            title={getPageTitle()}
-            subtitle={getPageSubtitle()}
-          />
-          
-          <main className="flex-1 p-6 overflow-auto">
-            {renderPageContent()}
-          </main>
-        </div>
-      </div>
+      <AuthProvider>
+        <ProtectedRoute>
+          <div className="flex min-h-screen bg-gray-50">
+            <Sidebar 
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+            />
+            
+            <div className="flex-1 flex flex-col">
+              <Header 
+                title={getPageTitle()}
+                subtitle={getPageSubtitle()}
+              />
+              
+              <main className="flex-1 p-6 overflow-auto">
+                {renderPageContent()}
+              </main>
+            </div>
+          </div>
+        </ProtectedRoute>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }

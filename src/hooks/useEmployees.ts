@@ -203,6 +203,9 @@ export const useEmployees = (filters?: EmployeeFilters) => {
 
         if (filters?.status) {
           filteredEmployees = filteredEmployees.filter(emp => emp.status === filters.status)
+        } else {
+          // ステータスフィルターが指定されていない場合は、退職者を除外
+          filteredEmployees = filteredEmployees.filter(emp => emp.status !== 'resigned')
         }
 
         // 階層組織フィルタリング

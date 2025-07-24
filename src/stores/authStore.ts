@@ -23,17 +23,14 @@ const permissionMatrix = {
     transfers: { create: false, read: true, update: false, delete: false }
   },
   employee: {
-    employees: { create: false, read: false, update: false, delete: false },
-    organizations: { create: false, read: true, update: false, delete: false }
+    employees: { create: false, read: true, update: false, delete: false },
+    organizations: { create: false, read: true, update: false, delete: false },
+    transfers: { create: false, read: true, update: false, delete: false }
   }
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: {
-    id: 'demo-user',
-    email: 'hr@example.com',
-    role: 'hr'
-  },
+  user: null,
   isLoading: false,
   
   login: async (email: string, password: string) => {
@@ -67,7 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   checkPermission: (action: string, resource: string) => {
     const { user } = get()
     if (!user) return false
-    return permissionMatrix[user.role]?.[resource]?.[action] || false
+    return (permissionMatrix as any)[user.role]?.[resource]?.[action] || false
   },
   
   setUser: (user: User | null) => set({ user })

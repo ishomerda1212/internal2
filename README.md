@@ -1,4 +1,4 @@
-# CRM3 - 社用車管理システム
+# CRM3 - 組織管理システム
 
 ## 環境設定
 
@@ -46,8 +46,38 @@ NODE_ENV=development
 3. これにより以下のテーブルが作成されます：
    - `organizations` - 組織テーブル
    - `employees` - 社員テーブル
-   - `transfer_history` - 異動履歴テーブル
+   - `transfer_histories` - 異動履歴テーブル
+   - `staff_rank_master` - スタッフランクマスターテーブル
    - サンプルデータも自動的に挿入されます
+
+### 認証設定
+
+1. Supabaseダッシュボードで「Authentication」を開く
+2. 「Users」タブで「Add user」をクリック
+3. 以下のデモユーザーを作成：
+
+#### HRユーザー（管理者権限）
+- Email: `hr@example.com`
+- Password: `password123`
+- User Metadata: `{"role": "hr"}`
+
+#### マネージャーユーザー
+- Email: `manager@example.com`
+- Password: `password123`
+- User Metadata: `{"role": "manager"}`
+
+#### 一般社員ユーザー
+- Email: `employee@example.com`
+- Password: `password123`
+- User Metadata: `{"role": "employee"}`
+
+### 権限設定
+
+各ロールの権限は以下の通りです：
+
+- **HR**: 全機能にアクセス可能（作成、読み取り、更新、削除）
+- **Manager**: 読み取り専用（一部機能は制限）
+- **Employee**: 限定的な読み取り権限
 
 ## 開発サーバーの起動
 

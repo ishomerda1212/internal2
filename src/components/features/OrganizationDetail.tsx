@@ -243,7 +243,7 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
                     size="sm" 
                     variant={employee.status === 'active' ? 'success' : 'warning'}
                   >
-                    {employee.status === 'active' ? '在籍中' : '入社予定'}
+                    {employee.status === 'active' ? '在籍中' : employee.status === 'upcoming' ? '入社予定' : '退職済み'}
                   </Badge>
                 </div>
               ))
