@@ -9,6 +9,9 @@ type EmployeeUpdate = Database['public']['Tables']['employees']['Update']
 export interface EmployeeFilters {
   search?: string
   status?: string
+  organization_level_1_id?: string
+  organization_level_2_id?: string
+  organization_level_3_id?: string
 }
 
 export interface Employee extends EmployeeRow {
@@ -200,6 +203,25 @@ export const useEmployees = (filters?: EmployeeFilters) => {
 
         if (filters?.status) {
           filteredEmployees = filteredEmployees.filter(emp => emp.status === filters.status)
+        }
+
+        // 階層組織フィルタリング
+        if (filters?.organization_level_1_id) {
+          filteredEmployees = filteredEmployees.filter(emp => 
+            emp.current_assignment?.organization_level_1_id === filters.organization_level_1_id
+          )
+        }
+
+        if (filters?.organization_level_2_id) {
+          filteredEmployees = filteredEmployees.filter(emp => 
+            emp.current_assignment?.organization_level_2_id === filters.organization_level_2_id
+          )
+        }
+
+        if (filters?.organization_level_3_id) {
+          filteredEmployees = filteredEmployees.filter(emp => 
+            emp.current_assignment?.organization_level_3_id === filters.organization_level_3_id
+          )
         }
 
         console.log('useEmployees - 最終結果:', filteredEmployees.length, '件')

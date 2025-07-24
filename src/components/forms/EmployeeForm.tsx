@@ -6,9 +6,7 @@ import { X } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
-import { useOrganizations } from '../../hooks/useOrganizations'
 import { useCreateEmployee } from '../../hooks/useEmployees'
-import type { Organization } from '../../types'
 
 interface EmployeeFormProps {
   onClose: () => void

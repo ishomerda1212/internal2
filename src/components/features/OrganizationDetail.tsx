@@ -25,7 +25,23 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
 }) => {
   const { checkPermission } = useAuthStore()
   const { data: organization, isLoading } = useOrganizationById(organizationId)
-  const { data: employees = [] } = useEmployees({ organization_id: organizationId })
+  // 組織の階層レベルに応じてフィルタリング条件を設定
+  const getEmployeeFilters = () => {
+    if (!organization) return {}
+    
+    switch (organization.level) {
+      case 1: // 部レベル - その部に直接所属する社員（第1階層のみ）
+        return { organization_level_1_id: organizationId }
+      case 2: // チームレベル - そのチームに直接所属する社員（第2階層のみ）
+        return { organization_level_2_id: organizationId }
+      case 3: // 課・室レベル - その課・室に直接所属する社員（第3階層のみ）
+        return { organization_level_3_id: organizationId }
+      default:
+        return {}
+    }
+  }
+
+  const { data: employees = [] } = useEmployees(getEmployeeFilters())
   const { data: organizationHistory = [] } = useOrganizationHistory(organizationId)
   const deleteOrganization = useDeleteOrganization()
   const [showEditForm, setShowEditForm] = useState(false)

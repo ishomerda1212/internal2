@@ -32,8 +32,7 @@ export const HistoricalOrganizationForm: React.FC<HistoricalOrganizationFormProp
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
-    watch
+    formState: { errors, isSubmitting }
   } = useForm<FormData>({
     resolver: yupResolver(schema),
     defaultValues: {

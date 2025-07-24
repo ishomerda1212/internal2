@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
@@ -48,7 +48,7 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
   // デバッグ用: employeeデータを確認
   console.log('EmployeeEditForm - employee data:', employee)
   
-  const defaultValues = {
+  const defaultValues = useMemo(() => ({
       employee_id: employee.employee_id,
       last_name: employee.last_name,
       first_name: employee.first_name,
@@ -67,7 +67,7 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
     is_mail: employee.is_mail || '',
     common_password: employee.common_password || '',
       remarks: employee.remarks || ''
-    }
+    }), [employee])
   
   // デバッグ用: defaultValuesを確認
   console.log('EmployeeEditForm - defaultValues:', defaultValues)
