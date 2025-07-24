@@ -28,39 +28,55 @@ export const useTransferHistory = (employeeId: string) => {
 
           try {
             if (transfer.organization_level_1_id) {
-              const { data: org1Data } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', transfer.organization_level_1_id)
-                .single()
-              orgLevel1 = org1Data
+              try {
+                const { data: org1Data } = await supabase
+                  .from('organizations')
+                  .select('*')
+                  .eq('id', transfer.organization_level_1_id)
+                  .single()
+                orgLevel1 = org1Data
+              } catch (org1Error) {
+                console.warn('useTransferHistory - 第一階層組織取得エラー:', org1Error)
+              }
             }
 
             if (transfer.organization_level_2_id) {
-              const { data: org2Data } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', transfer.organization_level_2_id)
-                .single()
-              orgLevel2 = org2Data
+              try {
+                const { data: org2Data } = await supabase
+                  .from('organizations')
+                  .select('*')
+                  .eq('id', transfer.organization_level_2_id)
+                  .single()
+                orgLevel2 = org2Data
+              } catch (org2Error) {
+                console.warn('useTransferHistory - 第二階層組織取得エラー:', org2Error)
+              }
             }
 
             if (transfer.organization_level_3_id) {
-              const { data: org3Data } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', transfer.organization_level_3_id)
-                .single()
-              orgLevel3 = org3Data
+              try {
+                const { data: org3Data } = await supabase
+                  .from('organizations')
+                  .select('*')
+                  .eq('id', transfer.organization_level_3_id)
+                  .single()
+                orgLevel3 = org3Data
+              } catch (org3Error) {
+                console.warn('useTransferHistory - 第三階層組織取得エラー:', org3Error)
+              }
             }
 
             if (transfer.staff_rank_master_id) {
-              const { data: srmData } = await supabase
-                .from('staff_rank_master')
-                .select('*')
-                .eq('id', transfer.staff_rank_master_id)
-                .single()
-              staffRankMaster = srmData
+              try {
+                const { data: srmData } = await supabase
+                  .from('staff_rank_master')
+                  .select('*')
+                  .eq('id', transfer.staff_rank_master_id)
+                  .single()
+                staffRankMaster = srmData
+              } catch (srmError) {
+                console.warn('useTransferHistory - スタッフランクマスター取得エラー:', srmError)
+              }
             }
           } catch (orgError) {
             console.warn('useTransferHistory - 組織情報取得エラー:', orgError)

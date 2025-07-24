@@ -1,198 +1,215 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import type { Employee, EmployeeFilters } from '../types'
 import type { Database } from '../lib/supabase'
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row']
 type EmployeeInsert = Database['public']['Tables']['employees']['Insert']
 type EmployeeUpdate = Database['public']['Tables']['employees']['Update']
 
+export interface EmployeeFilters {
+  search?: string
+  status?: string
+}
+
+export interface Employee extends EmployeeRow {
+  current_assignment?: {
+    id: string
+    employee_id: string
+    organization_level_1_id?: string | null
+    organization_level_2_id?: string | null
+    organization_level_3_id?: string | null
+    position?: string | null
+    staff_rank_master_id?: string | null
+    start_date: string
+    created_at: string
+    updated_at: string
+    organization_level_1?: {
+      id: string
+      name: string
+      type: string
+      level: number
+    } | null
+    organization_level_2?: {
+      id: string
+      name: string
+      type: string
+      level: number
+    } | null
+    organization_level_3?: {
+      id: string
+      name: string
+      type: string
+      level: number
+    } | null
+    staff_rank_master?: {
+      id: string
+      staff_rank: string
+      personnel_costs?: number | null
+      maintenance_costs?: number | null
+      director_cost?: number | null
+      ad_costs?: number | null
+    } | null
+  }
+}
+
 export const useEmployees = (filters?: EmployeeFilters) => {
   return useQuery({
     queryKey: ['employees', filters],
     queryFn: async () => {
-      console.log('useEmployees - 開始:', { filters })
-      
       try {
-        // 基本的な社員データを取得
-        let query = supabase
-          .from('employees')
+        // データベースビューから一括取得
+        const { data: employees, error } = await supabase
+          .from('employees_with_current_assignments')
           .select('*')
           .order('employee_id', { ascending: true })
 
-        const { data: employeesData, error: employeesError } = await query
-
-        if (employeesError) {
-          console.error('useEmployees - 社員データ取得エラー:', employeesError)
-          throw new Error(`社員データの取得に失敗しました: ${employeesError.message}`)
+        if (error) {
+          console.error('useEmployees - データ取得エラー:', error)
+          throw new Error(`社員データの取得に失敗しました: ${error.message}`)
         }
 
-        console.log('useEmployees - 基本社員データ取得:', employeesData?.length || 0, '件')
+        console.log('useEmployees - ビューから取得したデータ:', employees)
 
-        // 各社員の最新の異動履歴を取得（エラーハンドリングを強化）
-        const employees: Employee[] = await Promise.all(
-          (employeesData || []).map(async (emp) => {
-            try {
-              // 最新の異動履歴を取得（シンプルなクエリから開始）
-              const { data: transferData, error: transferError } = await supabase
-                .from('transfer_histories')
-                .select('*')
-                .eq('employee_id', emp.id)
-                .order('start_date', { ascending: false })
-                .limit(1)
-                .single()
+        if (!employees) {
+          return []
+        }
 
-              console.log(`useEmployees - 社員${emp.employee_id}の異動履歴:`, transferData)
-
-              let currentAssignment = undefined
-              
-              if (!transferError && transferData) {
-                // 組織情報を個別に取得
-                let orgLevel1 = null
-                let orgLevel2 = null
-                let orgLevel3 = null
-                let staffRankMaster = null
-
-                try {
-                  if (transferData.organization_level_1_id) {
-                    const { data: org1Data } = await supabase
-                      .from('organizations')
-                      .select('*')
-                      .eq('id', transferData.organization_level_1_id)
-                      .single()
-                    orgLevel1 = org1Data
-                    console.log(`useEmployees - 社員${emp.employee_id}の第一階層組織:`, org1Data)
-                  }
-
-                  if (transferData.organization_level_2_id) {
-                    const { data: org2Data } = await supabase
-                      .from('organizations')
-                      .select('*')
-                      .eq('id', transferData.organization_level_2_id)
-                      .single()
-                    orgLevel2 = org2Data
-                    console.log(`useEmployees - 社員${emp.employee_id}の第二階層組織:`, org2Data)
-                  }
-
-                  if (transferData.organization_level_3_id) {
-                    const { data: org3Data } = await supabase
-                      .from('organizations')
-                      .select('*')
-                      .eq('id', transferData.organization_level_3_id)
-                      .single()
-                    orgLevel3 = org3Data
-                    console.log(`useEmployees - 社員${emp.employee_id}の第三階層組織:`, org3Data)
-                  }
-
-                  // staff_rank_master_idカラムが存在する場合のみ実行
-                  if (transferData.staff_rank_master_id && 'staff_rank_master_id' in transferData) {
-                    try {
-                      const { data: srmData } = await supabase
-                        .from('staff_rank_master')
-                        .select('*')
-                        .eq('id', transferData.staff_rank_master_id)
-                        .single()
-                      staffRankMaster = srmData
-                    } catch (srmError) {
-                      console.warn(`useEmployees - スタッフランクマスター取得エラー (社員${emp.employee_id}):`, srmError)
-                    }
-                  }
-                } catch (orgError) {
-                  console.warn(`useEmployees - 組織情報取得エラー (社員${emp.employee_id}):`, orgError)
-                }
-
-                currentAssignment = {
-                  id: transferData.id,
-                  employee_id: emp.id,
-                  organization_level_1_id: transferData.organization_level_1_id,
-                  organization_level_2_id: transferData.organization_level_2_id,
-                  organization_level_3_id: transferData.organization_level_3_id,
-                  position: transferData.position,
-                  staff_rank_master_id: transferData.staff_rank_master_id || undefined,
-                  start_date: transferData.start_date,
-                  transfer_type: transferData.transfer_type,
-                  created_at: transferData.created_at,
-                  updated_at: transferData.updated_at,
-                  organization_level_1: orgLevel1,
-                  organization_level_2: orgLevel2,
-                  organization_level_3: orgLevel3,
-                  staff_rank_master: staffRankMaster
-                }
-              }
-
-              // フィルター適用
-              let shouldInclude = true
-              
-              if (filters?.search) {
-                const searchTerm = filters.search.toLowerCase()
-                const searchableText = [
-                  emp.last_name,
-                  emp.first_name,
-                  emp.employee_id
-                ].join(' ').toLowerCase()
-                shouldInclude = searchableText.includes(searchTerm)
-              }
-
-              if (shouldInclude && filters?.status) {
-                shouldInclude = emp.status === filters.status
-              }
-
-              if (shouldInclude && filters?.job_type) {
-                shouldInclude = emp.job_type === filters.job_type
-              }
-
-              if (shouldInclude && filters?.employment_type) {
-                shouldInclude = emp.employment_type === filters.employment_type
-              }
-
-              if (shouldInclude && filters?.organization_id) {
-                const currentOrgId = currentAssignment?.organization_level_3_id || 
-                                   currentAssignment?.organization_level_2_id || 
-                                   currentAssignment?.organization_level_1_id
-                shouldInclude = currentOrgId === filters.organization_id
-              }
-
-              if (!shouldInclude) {
-                return null
-              }
-
-              return {
-                id: emp.id,
-                employee_id: emp.employee_id,
-                last_name: emp.last_name,
-                first_name: emp.first_name,
-                last_name_kana: emp.last_name_kana,
-                first_name_kana: emp.first_name_kana,
-                roman_name: emp.roman_name,
-                job_type: emp.job_type,
-                employment_type: emp.employment_type,
-                gender: emp.gender,
-                status: emp.status,
-                hire_date: emp.hire_date,
-                resign_date: emp.resign_date,
-                phone: emp.phone,
-                gmail: emp.gmail,
-                is_mail: emp.is_mail,
-                common_password: emp.common_password,
-                created_at: emp.created_at,
-                updated_at: emp.updated_at,
-                current_assignment: currentAssignment
-              }
-            } catch (error) {
-              console.error(`useEmployees - 社員${emp.employee_id}の処理エラー:`, error)
-              // エラーが発生しても社員データは返す（current_assignmentはundefined）
-              return {
-                ...emp,
-                current_assignment: undefined
-              }
-            }
+        // データを変換してEmployee型に合わせる
+        const transformedEmployees = employees.map(emp => {
+          console.log(`useEmployees - 社員${emp.employee_id}の変換処理:`, {
+            transfer_history_id: emp.transfer_history_id,
+            position: emp.position,
+            org_level_1_name: emp.org_level_1_name,
+            org_level_2_name: emp.org_level_2_name,
+            org_level_3_name: emp.org_level_3_name
           })
-        )
+          
+          // 現在の配属先情報を構築
+          const currentAssignment = emp.transfer_history_id ? {
+            id: emp.transfer_history_id,
+            employee_id: emp.id,
+            organization_level_1_id: emp.org_level_1_id,
+            organization_level_2_id: emp.org_level_2_id,
+            organization_level_3_id: emp.org_level_3_id,
+            position: emp.position || '',
+            staff_rank_master_id: emp.staff_rank_master_id,
+            start_date: emp.assignment_start_date,
+            end_date: undefined,
+            reason: undefined,
+            notes: undefined,
+            organization_snapshot: undefined,
+            created_at: emp.created_at,
+            updated_at: emp.updated_at,
+            // 組織情報
+            organization_level_1: emp.org_level_1_id ? {
+              id: emp.org_level_1_id,
+              name: emp.org_level_1_name,
+              type: emp.org_level_1_type,
+              level: emp.org_level_1_level,
+              representative_id: undefined,
+              parent_id: undefined,
+              effective_date: '',
+              end_date: undefined,
+              is_current: true,
+              successor_id: undefined,
+              change_type: undefined,
+              change_date: undefined,
+              created_at: '',
+              updated_at: ''
+            } : null,
+            organization_level_2: emp.org_level_2_id ? {
+              id: emp.org_level_2_id,
+              name: emp.org_level_2_name,
+              type: emp.org_level_2_type,
+              level: emp.org_level_2_level,
+              representative_id: undefined,
+              parent_id: undefined,
+              effective_date: '',
+              end_date: undefined,
+              is_current: true,
+              successor_id: undefined,
+              change_type: undefined,
+              change_date: undefined,
+              created_at: '',
+              updated_at: ''
+            } : null,
+            organization_level_3: emp.org_level_3_id ? {
+              id: emp.org_level_3_id,
+              name: emp.org_level_3_name,
+              type: emp.org_level_3_type,
+              level: emp.org_level_3_level,
+              representative_id: undefined,
+              parent_id: undefined,
+              effective_date: '',
+              end_date: undefined,
+              is_current: true,
+              successor_id: undefined,
+              change_type: undefined,
+              change_date: undefined,
+              created_at: '',
+              updated_at: ''
+            } : null,
+            // スタッフランク情報
+            staff_rank_master: emp.staff_rank_master_id ? {
+              id: emp.staff_rank_master_id,
+              staff_rank: emp.staff_rank,
+              personnel_costs: emp.personnel_costs,
+              maintenance_costs: emp.maintenance_costs,
+              director_cost: emp.director_cost,
+              ad_costs: emp.ad_costs
+            } : null
+          } : undefined
 
-        // nullを除外してフィルタリング
-        const filteredEmployees = employees.filter(Boolean) as Employee[]
-        
+                      return {
+              id: emp.id,
+              employee_id: emp.employee_id,
+              last_name: emp.last_name,
+              first_name: emp.first_name,
+              last_name_kana: emp.last_name_kana,
+              first_name_kana: emp.first_name_kana,
+              roman_name: emp.roman_name,
+              gender: emp.gender,
+              email: emp.email,
+              phone: emp.phone,
+              job_type: emp.job_type,
+              employment_type: emp.employment_type,
+              status: emp.status,
+              hire_date: emp.hire_date,
+              resign_date: emp.resign_date,
+              remarks: emp.remarks,
+              created_at: emp.created_at,
+              updated_at: emp.updated_at,
+              current_assignment: currentAssignment
+            }
+        })
+
+        // フィルター適用
+        let filteredEmployees = transformedEmployees
+
+        if (filters?.search) {
+          const searchTerm = filters.search.toLowerCase()
+          filteredEmployees = filteredEmployees.filter(emp => {
+            const searchableText = [
+              emp.last_name,
+              emp.first_name,
+              emp.employee_id
+            ].join(' ').toLowerCase()
+            return searchableText.includes(searchTerm)
+          })
+        }
+
+        if (filters?.status) {
+          filteredEmployees = filteredEmployees.filter(emp => emp.status === filters.status)
+        }
+
         console.log('useEmployees - 最終結果:', filteredEmployees.length, '件')
+        
+        // 社員14005のデータを特別に確認
+        const employee14005 = filteredEmployees.find(emp => emp.employee_id === '14005')
+        if (employee14005) {
+          console.log('useEmployees - 社員14005の最終データ:', employee14005)
+        }
+        
         return filteredEmployees
 
       } catch (error) {
@@ -225,13 +242,24 @@ export const useEmployee = (id: string) => {
       // 2. 最新の異動履歴を取得
       let currentAssignment = undefined
       try {
-        const { data: transferData, error: transferError } = await supabase
-          .from('transfer_histories')
-          .select('*')
-          .eq('employee_id', id)
-          .order('start_date', { ascending: false })
-          .limit(1)
-          .single()
+        let transferData = null
+        let transferError = null
+
+        try {
+          const { data, error } = await supabase
+            .from('transfer_histories')
+            .select('*')
+            .eq('employee_id', id)
+            .order('start_date', { ascending: false })
+            .limit(1)
+            .single()
+          
+          transferData = data
+          transferError = error
+        } catch (error) {
+          transferError = error
+          console.warn('useEmployee - 異動履歴取得エラー:', error)
+        }
 
         if (!transferError && transferData) {
           // 組織情報を個別に取得
@@ -242,30 +270,42 @@ export const useEmployee = (id: string) => {
 
           try {
             if (transferData.organization_level_1_id) {
-              const { data: org1Data } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', transferData.organization_level_1_id)
-                .single()
-              orgLevel1 = org1Data
+              try {
+                const { data: org1Data } = await supabase
+                  .from('organizations')
+                  .select('*')
+                  .eq('id', transferData.organization_level_1_id)
+                  .single()
+                orgLevel1 = org1Data
+              } catch (org1Error) {
+                console.warn('useEmployee - 第一階層組織取得エラー:', org1Error)
+              }
             }
 
             if (transferData.organization_level_2_id) {
-              const { data: org2Data } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', transferData.organization_level_2_id)
-                .single()
-              orgLevel2 = org2Data
+              try {
+                const { data: org2Data } = await supabase
+                  .from('organizations')
+                  .select('*')
+                  .eq('id', transferData.organization_level_2_id)
+                  .single()
+                orgLevel2 = org2Data
+              } catch (org2Error) {
+                console.warn('useEmployee - 第二階層組織取得エラー:', org2Error)
+              }
             }
 
             if (transferData.organization_level_3_id) {
-              const { data: org3Data } = await supabase
-                .from('organizations')
-                .select('*')
-                .eq('id', transferData.organization_level_3_id)
-                .single()
-              orgLevel3 = org3Data
+              try {
+                const { data: org3Data } = await supabase
+                  .from('organizations')
+                  .select('*')
+                  .eq('id', transferData.organization_level_3_id)
+                  .single()
+                orgLevel3 = org3Data
+              } catch (org3Error) {
+                console.warn('useEmployee - 第三階層組織取得エラー:', org3Error)
+              }
             }
 
             // staff_rank_master_idカラムが存在する場合のみ実行
@@ -286,7 +326,16 @@ export const useEmployee = (id: string) => {
           }
 
           currentAssignment = {
-            ...transferData,
+            id: transferData.id,
+            employee_id: employeeData.id,
+            organization_level_1_id: transferData.organization_level_1_id,
+            organization_level_2_id: transferData.organization_level_2_id,
+            organization_level_3_id: transferData.organization_level_3_id,
+            position: transferData.position,
+            staff_rank_master_id: transferData.staff_rank_master_id || undefined,
+            start_date: transferData.start_date,
+            created_at: transferData.created_at,
+            updated_at: transferData.updated_at,
             organization_level_1: orgLevel1,
             organization_level_2: orgLevel2,
             organization_level_3: orgLevel3,
@@ -294,34 +343,25 @@ export const useEmployee = (id: string) => {
           }
         }
       } catch (error) {
-        console.log('useEmployee - 異動履歴取得エラー:', error)
+        console.warn('useEmployee - 異動履歴処理エラー:', error)
       }
 
-      // Transform data to match Employee type
-      const employee: Employee = {
+                   return {
         ...employeeData,
-        current_assignment: currentAssignment || undefined
+        current_assignment: currentAssignment
       }
-
-      // デバッグ用: 取得したデータを確認
-      console.log('useEmployee - employee data:', employeeData)
-      console.log('useEmployee - current assignment:', currentAssignment)
-      console.log('useEmployee - final employee:', employee)
-
-      return employee
-    },
-    enabled: !!id
+    }
   })
 }
 
 export const useCreateEmployee = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: async (data: EmployeeInsert) => {
-      const { data: newEmployee, error } = await supabase
+    mutationFn: async (employee: EmployeeInsert) => {
+      const { data, error } = await supabase
         .from('employees')
-        .insert(data)
+        .insert(employee)
         .select()
         .single()
 
@@ -329,7 +369,7 @@ export const useCreateEmployee = () => {
         throw new Error(`社員の作成に失敗しました: ${error.message}`)
       }
 
-      return newEmployee
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
@@ -339,53 +379,32 @@ export const useCreateEmployee = () => {
 
 export const useUpdateEmployee = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: async ({ id, ...data }: EmployeeUpdate & { id: string }) => {
-      console.log('useUpdateEmployee - 更新開始:', { id, data })
-      console.log('useUpdateEmployee - 更新データ（JSON）:', JSON.stringify(data, null, 2))
-      
-      const { data: updatedEmployee, error } = await supabase
+    mutationFn: async ({ id, ...employee }: EmployeeUpdate & { id: string }) => {
+      const { data, error } = await supabase
         .from('employees')
-        .update(data)
+        .update(employee)
         .eq('id', id)
         .select()
         .single()
 
-      console.log('useUpdateEmployee - Supabase結果:', { updatedEmployee, error })
-      console.log('useUpdateEmployee - Supabase結果（JSON）:', JSON.stringify({ updatedEmployee, error }, null, 2))
-
       if (error) {
-        console.error('useUpdateEmployee - エラー詳細:', error)
         throw new Error(`社員の更新に失敗しました: ${error.message}`)
       }
 
-      console.log('useUpdateEmployee - 更新成功:', updatedEmployee)
-      console.log('useUpdateEmployee - 更新成功（JSON）:', JSON.stringify(updatedEmployee, null, 2))
-      return updatedEmployee
+      return data
     },
-    onSuccess: (updatedEmployee) => {
-      console.log('useUpdateEmployee - キャッシュ無効化')
-      // 社員一覧のキャッシュを無効化
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
-      // 個別の社員データのキャッシュを無効化
-      queryClient.invalidateQueries({ queryKey: ['employees', updatedEmployee.id] })
-      // 特定の社員IDのキャッシュを更新（current_assignmentを含める）
-      const updatedEmployeeWithAssignment = {
-        ...updatedEmployee,
-        current_assignment: undefined // 一時的にundefinedに設定
-      }
-      queryClient.setQueryData(['employees', updatedEmployee.id], updatedEmployeeWithAssignment)
-    },
-    onError: (error) => {
-      console.error('useUpdateEmployee - ミューテーションエラー:', error)
+      queryClient.invalidateQueries({ queryKey: ['employees', variables.id] })
     }
   })
 }
 
 export const useDeleteEmployee = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -396,8 +415,6 @@ export const useDeleteEmployee = () => {
       if (error) {
         throw new Error(`社員の削除に失敗しました: ${error.message}`)
       }
-
-      return id
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
