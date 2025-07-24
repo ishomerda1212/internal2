@@ -23,10 +23,7 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
 }) => {
   const { checkPermission } = useAuthStore()
   const { data: employee, isLoading } = useEmployee(employeeId)
-  // 一時的に異動履歴機能を無効化
-  const transferHistory: any[] = []
-  const transferLoading = false
-  const transferError = null
+  const { data: transferHistory = [], isLoading: transferLoading, error: transferError } = useTransferHistory(employeeId)
   
   // デバッグ用: transfer_historyエラーを確認
   if (transferError) {
@@ -35,6 +32,7 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
   
   // デバッグ用: employeeデータを確認
   console.log('EmployeeDetail - employee data:', employee)
+  console.log('EmployeeDetail - transferHistory data:', transferHistory)
   const [activeTab, setActiveTab] = useState<'basic' | 'transfer' | 'qualifications'>('basic')
   const [showEditForm, setShowEditForm] = useState(false)
   const [showTransferForm, setShowTransferForm] = useState(false)
@@ -366,7 +364,7 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
                       <div className="flex items-center space-x-2 mb-2">
                         {getTransferTypeBadge(transfer.transfer_type)}
                         <span className="text-sm font-medium text-gray-900">
-                          {transfer.organization?.name}
+                          {transfer.organization?.name || `組織ID: ${transfer.organization_id}`}
                         </span>
                         <span className="text-sm text-gray-500">
                           {transfer.position}
@@ -374,29 +372,13 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
                       </div>
                       
                       <div className="text-sm text-gray-600 mb-2">
-                        <span className="font-medium">期間:</span>{' '}
+                        <span className="font-medium">開始日:</span>{' '}
                         {format(new Date(transfer.start_date), 'yyyy年MM月dd日')}
-                        {transfer.end_date && (
-                          <span> 〜 {format(new Date(transfer.end_date), 'yyyy年MM月dd日')}</span>
-                        )}
-                        {!transfer.end_date && <span> 〜 現在</span>}
                       </div>
                       
                       {transfer.staff_rank && (
                         <div className="text-sm text-gray-600 mb-2">
-                          <span className="font-medium">職階:</span> {transfer.staff_rank}
-                        </div>
-                      )}
-                      
-                      {transfer.reason && (
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">理由:</span> {transfer.reason}
-                        </div>
-                      )}
-                      
-                      {transfer.notes && (
-                        <div className="text-sm text-gray-600 mt-2">
-                          <span className="font-medium">備考:</span> {transfer.notes}
+                          <span className="font-medium">スタッフランク:</span> {transfer.staff_rank}
                         </div>
                       )}
                     </div>
@@ -457,7 +439,7 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
           employeeId={employeeId}
           onClose={() => setShowTransferForm(false)}
           onSuccess={() => {
-            // データを再取得するためにクエリを無効化
+            console.log('TransferForm - 異動記録追加成功')
             // React Queryが自動的に再フェッチする
           }}
         />

@@ -98,41 +98,33 @@ export type Database = {
           remarks?: string
         }
       }
-      transfer_history: {
+      transfer_histories: {
         Row: {
           id: string
           employee_id: string
           organization_id: string
-          position: string
-          staff_rank?: string
-          start_date: string
-          end_date?: string
+          position: string | null
+          staff_rank: string | null
           transfer_type: string
-          reason?: string
-          notes?: string
+          start_date: string
           created_at: string
           updated_at: string
         }
         Insert: {
           employee_id: string
           organization_id: string
-          position: string
-          staff_rank?: string
+          position?: string | null
+          staff_rank?: string | null
+          transfer_type?: string
           start_date: string
-          end_date?: string
-          transfer_type: string
-          reason?: string
-          notes?: string
         }
         Update: {
+          employee_id?: string
           organization_id?: string
-          position?: string
-          staff_rank?: string
-          start_date?: string
-          end_date?: string
+          position?: string | null
+          staff_rank?: string | null
           transfer_type?: string
-          reason?: string
-          notes?: string
+          start_date?: string
         }
       }
     }

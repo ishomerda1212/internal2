@@ -3,9 +3,9 @@ import { supabase } from '../lib/supabase'
 import type { TransferHistory } from '../types'
 import type { Database } from '../lib/supabase'
 
-type TransferHistoryRow = Database['public']['Tables']['transfer_history']['Row']
-type TransferHistoryInsert = Database['public']['Tables']['transfer_history']['Insert']
-type TransferHistoryUpdate = Database['public']['Tables']['transfer_history']['Update']
+type TransferHistoryRow = Database['public']['Tables']['transfer_histories']['Row']
+type TransferHistoryInsert = Database['public']['Tables']['transfer_histories']['Insert']
+type TransferHistoryUpdate = Database['public']['Tables']['transfer_histories']['Update']
 
 export const useTransferHistory = (employeeId?: string) => {
   return useQuery({
@@ -15,7 +15,7 @@ export const useTransferHistory = (employeeId?: string) => {
       
       try {
         let query = supabase
-          .from('transfer_history')
+          .from('transfer_histories')
           .select('*')
           .order('start_date', { ascending: false })
 
@@ -35,7 +35,7 @@ export const useTransferHistory = (employeeId?: string) => {
         // Transform data to match TransferHistory type
         const transferHistory: TransferHistory[] = (data || []).map(th => ({
           ...th,
-          organization: null, // 一時的にnullに設定
+          organization: null, // 組織情報は別途取得が必要
           employee: null
         }))
 
@@ -58,7 +58,7 @@ export const useCreateTransfer = () => {
   return useMutation({
     mutationFn: async (data: TransferHistoryInsert) => {
                     const { data: newTransfer, error } = await supabase
-        .from('transfer_history')
+        .from('transfer_histories')
           .insert(data)
           .select(`
             *,
@@ -86,7 +86,7 @@ export const useUpdateTransfer = () => {
   return useMutation({
     mutationFn: async ({ id, ...data }: TransferHistoryUpdate & { id: string }) => {
                     const { data: updatedTransfer, error } = await supabase
-        .from('transfer_history')
+        .from('transfer_histories')
           .update(data)
           .eq('id', id)
           .select(`
@@ -115,7 +115,7 @@ export const useDeleteTransfer = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('transfer_history')
+        .from('transfer_histories')
         .delete()
         .eq('id', id)
 
