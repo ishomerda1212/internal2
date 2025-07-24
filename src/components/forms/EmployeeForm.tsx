@@ -38,7 +38,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   onClose,
   onSuccess
 }) => {
-  const { data: organizations = [] } = useOrganizations()
   const createEmployee = useCreateEmployee()
   
   const {
@@ -51,21 +50,6 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       status: 'upcoming'
     }
   })
-  
-  // 組織オプション
-  const flattenOrganizations = (orgs: Organization[]): Organization[] => {
-    const result: Organization[] = []
-    const flatten = (orgList: Organization[]) => {
-      orgList.forEach(org => {
-        result.push(org)
-        if (org.children) {
-          flatten(org.children)
-        }
-      })
-    }
-    flatten(orgs)
-    return result
-  }
   
 
   

@@ -7,7 +7,7 @@ import { Badge } from '../ui/Badge'
 import { useEmployees } from '../../hooks/useEmployees'
 import { useCompanyCars } from '../../hooks/useCompanyCars'
 import { useOrganizations } from '../../hooks/useOrganizations'
-import type { Employee, CompanyCar, Organization } from '../../types'
+import type { Employee, Organization } from '../../types'
 
 export const EmployeeCarAssignment: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')

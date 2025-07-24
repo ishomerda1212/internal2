@@ -87,7 +87,7 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
     if (employee) {
       reset(defaultValues)
     }
-  }, [employee, reset])
+  }, [employee, reset, defaultValues])
   
   const jobTypeOptions = [
     { value: '', label: '選択してください' },

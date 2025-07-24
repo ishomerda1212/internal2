@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Search, Plus, Car, Calendar, AlertTriangle } from 'lucide-react'
+import { Search, Plus, Car, Calendar } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -15,8 +15,7 @@ interface CompanyCarListProps {
 }
 
 export const CompanyCarList: React.FC<CompanyCarListProps> = ({
-  onCarSelect,
-  onCreateCar
+  onCarSelect
 }) => {
   const { checkPermission } = useAuthStore()
   const [searchTerm, setSearchTerm] = useState('')

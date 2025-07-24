@@ -2,12 +2,11 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { X, ArrowRight } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
-import { useOrganizations, useCreateOrganization, useUpdateOrganizationEffectiveDate } from '../../hooks/useOrganizations'
-import { useEmployees } from '../../hooks/useEmployees'
+import { useCreateOrganization } from '../../hooks/useOrganizations'
 
 interface HistoricalOrganizationFormProps {
   onClose: () => void
@@ -44,14 +43,7 @@ export const HistoricalOrganizationForm: React.FC<HistoricalOrganizationFormProp
     }
   })
   
-  const watchChangeType = watch('change_type')
-  
-  // 変更タイプのオプション
-  const changeTypeOptions = [
-    { value: 'name_change', label: '名前変更のみ' },
-    { value: 'parent_change', label: '親組織変更のみ' },
-    { value: 'both', label: '名前・親組織両方変更' }
-  ]
+
   
   const onSubmit = async (data: FormData) => {
     try {

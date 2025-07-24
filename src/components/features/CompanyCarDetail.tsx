@@ -8,7 +8,7 @@ import { CarUsageForm } from '../forms/CarUsageForm'
 import { useCompanyCar } from '../../hooks/useCompanyCars'
 import { useCarUsageHistory } from '../../hooks/useCompanyCars'
 import { useAuthStore } from '../../stores/authStore'
-import type { CompanyCar } from '../../types'
+
 import { format } from 'date-fns'
 
 interface CompanyCarDetailProps {
