@@ -314,7 +314,6 @@ export const useOrganizationsForStaffRankMaster = () => {
         .select('*')
         .eq('is_current', true)
         .in('level', [1, 2]) // 1階層（部）と2階層（チーム）のみ
-        .not('name', 'ilike', '%管理部%') // 管理部とその子組織を除外
         .order('level', { ascending: true })
         .order('name', { ascending: true })
 
@@ -324,5 +323,46 @@ export const useOrganizationsForStaffRankMaster = () => {
 
       return data || []
     }
+  })
+}
+
+export const useOrganizationsByLevel = (level: number) => {
+  return useQuery({
+    queryKey: ['organizations', 'level', level],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('is_current', true)
+        .eq('level', level)
+        .order('name', { ascending: true })
+
+      if (error) {
+        throw new Error(`レベル${level}の組織データの取得に失敗しました: ${error.message}`)
+      }
+
+      return data || []
+    }
+  })
+}
+
+export const useOrganizationsByParent = (parentId: string) => {
+  return useQuery({
+    queryKey: ['organizations', 'parent', parentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('is_current', true)
+        .eq('parent_id', parentId)
+        .order('name', { ascending: true })
+
+      if (error) {
+        throw new Error(`親組織${parentId}の子組織データの取得に失敗しました: ${error.message}`)
+      }
+
+      return data || []
+    },
+    enabled: !!parentId
   })
 }

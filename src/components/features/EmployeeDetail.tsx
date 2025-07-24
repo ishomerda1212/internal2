@@ -144,7 +144,26 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
             <div>
               <p className="text-sm font-medium text-gray-500">現在の所属</p>
               <p className="text-sm text-gray-900">
-                {employee.current_assignment?.organization?.name || '-'}
+                {(() => {
+                  const orgNames = []
+                  
+                  // 第一階層（部）
+                  if (employee.current_assignment?.organization_level_1?.name) {
+                    orgNames.push(`${employee.current_assignment.organization_level_1.name} (${employee.current_assignment.organization_level_1.type})`)
+                  }
+                  
+                  // 第二階層（チーム）
+                  if (employee.current_assignment?.organization_level_2?.name) {
+                    orgNames.push(`${employee.current_assignment.organization_level_2.name} (${employee.current_assignment.organization_level_2.type})`)
+                  }
+                  
+                  // 第三階層（課・店・室）
+                  if (employee.current_assignment?.organization_level_3?.name) {
+                    orgNames.push(`${employee.current_assignment.organization_level_3.name} (${employee.current_assignment.organization_level_3.type})`)
+                  }
+                  
+                  return orgNames.length > 0 ? orgNames.join(' → ') : '-'
+                })()}
               </p>
             </div>
           </div>
@@ -352,48 +371,63 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
-          ) : transferHistory.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>異動履歴がありません</p>
-            </div>
-          ) : (
+          ) : transferHistory && transferHistory.length > 0 ? (
             <div className="space-y-4">
-              {transferHistory.map((transfer, index) => (
-                <div key={transfer.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        {getTransferTypeBadge(transfer.transfer_type)}
-                        <span className="text-sm font-medium text-gray-900">
-                          {transfer.organization_snapshot?.name || transfer.organization?.name || '-'}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {transfer.position}
-                        </span>
-                      </div>
-                      
-                      <div className="text-sm text-gray-600 mb-2">
-                        <span className="font-medium">開始日:</span>{' '}
-                        {format(new Date(transfer.start_date), 'yyyy年MM月dd日')}
-                      </div>
-                      
-                      {transfer.staff_rank && (
-                        <div className="text-sm text-gray-600 mb-2">
-                          <span className="font-medium">スタッフランク:</span> {transfer.staff_rank}
-                        </div>
-                      )}
+              {transferHistory.map((transfer) => (
+                <div key={transfer.id} className="border rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">配属先</label>
+                      <p className="text-sm">
+                        {(() => {
+                          const orgNames = []
+                          
+                          // 第一階層（部）
+                          if (transfer.organization_level_1?.name) {
+                            orgNames.push(`${transfer.organization_level_1.name} (${transfer.organization_level_1.type})`)
+                          }
+                          
+                          // 第二階層（チーム）
+                          if (transfer.organization_level_2?.name) {
+                            orgNames.push(`${transfer.organization_level_2.name} (${transfer.organization_level_2.type})`)
+                          }
+                          
+                          // 第三階層（課・店・室）
+                          if (transfer.organization_level_3?.name) {
+                            orgNames.push(`${transfer.organization_level_3.name} (${transfer.organization_level_3.type})`)
+                          }
+                          
+                          // デバッグ用ログ
+                          console.log('配属先表示デバッグ:', {
+                            transfer_id: transfer.id,
+                            level_1: transfer.organization_level_1?.name,
+                            level_2: transfer.organization_level_2?.name,
+                            level_3: transfer.organization_level_3?.name,
+                            orgNames: orgNames
+                          })
+                          
+                          return orgNames.length > 0 ? orgNames.join(' → ') : '未設定'
+                        })()}
+                      </p>
                     </div>
-                    
-                    <div className="text-xs text-gray-400">
-                      {index === 0 && !transfer.end_date && (
-                        <Badge variant="info" size="sm">現在</Badge>
-                      )}
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">役職</label>
+                      <p className="text-sm">{transfer.position || '未設定'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">スタッフランク</label>
+                      <p className="text-sm">{transfer.staff_rank_master?.staff_rank || '未設定'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">開始日</label>
+                      <p className="text-sm">{new Date(transfer.start_date).toLocaleDateString('ja-JP')}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-gray-500">異動履歴がありません</p>
           )}
         </Card>
       )}

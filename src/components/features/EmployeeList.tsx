@@ -187,7 +187,18 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.current_assignment?.organization?.name || '-'}
+                      {(() => {
+                        const assignment = employee.current_assignment
+                        if (!assignment) return '-'
+                        
+                        const orgNames = [
+                          assignment.organization_level_1?.name,
+                          assignment.organization_level_2?.name,
+                          assignment.organization_level_3?.name
+                        ].filter(Boolean)
+                        
+                        return orgNames.length > 0 ? orgNames.join(' ') : '-'
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {employee.current_assignment?.position || '-'}

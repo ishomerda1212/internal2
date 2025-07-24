@@ -11,90 +11,194 @@ export const useEmployees = (filters?: EmployeeFilters) => {
   return useQuery({
     queryKey: ['employees', filters],
     queryFn: async () => {
-      let query = supabase
-        .from('employees_with_current_assignment')
-        .select('*')
-        .order('employee_id', { ascending: true })
+      console.log('useEmployees - 開始:', { filters })
+      
+      try {
+        // 基本的な社員データを取得
+        let query = supabase
+          .from('employees')
+          .select('*')
+          .order('employee_id', { ascending: true })
 
-      // Apply filters
-      if (filters?.search) {
-        const searchTerm = filters.search
-        query = query.or(`last_name.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,employee_id.ilike.%${searchTerm}%`)
-      }
+        const { data: employeesData, error: employeesError } = await query
 
-      if (filters?.status) {
-        query = query.eq('status', filters.status)
-      }
+        if (employeesError) {
+          console.error('useEmployees - 社員データ取得エラー:', employeesError)
+          throw new Error(`社員データの取得に失敗しました: ${employeesError.message}`)
+        }
 
-      if (filters?.job_type) {
-        query = query.eq('job_type', filters.job_type)
-      }
+        console.log('useEmployees - 基本社員データ取得:', employeesData?.length || 0, '件')
 
-      if (filters?.employment_type) {
-        query = query.eq('employment_type', filters.employment_type)
-      }
+        // 各社員の最新の異動履歴を取得（エラーハンドリングを強化）
+        const employees: Employee[] = await Promise.all(
+          (employeesData || []).map(async (emp) => {
+            try {
+              // 最新の異動履歴を取得（シンプルなクエリから開始）
+              const { data: transferData, error: transferError } = await supabase
+                .from('transfer_histories')
+                .select('*')
+                .eq('employee_id', emp.id)
+                .order('start_date', { ascending: false })
+                .limit(1)
+                .single()
 
-      if (filters?.organization_id) {
-        query = query.eq('current_organization_id', filters.organization_id)
-      }
+              console.log(`useEmployees - 社員${emp.employee_id}の異動履歴:`, transferData)
 
-      const { data, error } = await query
+              let currentAssignment = undefined
+              
+              if (!transferError && transferData) {
+                // 組織情報を個別に取得
+                let orgLevel1 = null
+                let orgLevel2 = null
+                let orgLevel3 = null
+                let staffRankMaster = null
 
-      if (error) {
-        throw new Error(`社員データの取得に失敗しました: ${error.message}`)
-      }
+                try {
+                  if (transferData.organization_level_1_id) {
+                    const { data: org1Data } = await supabase
+                      .from('organizations')
+                      .select('*')
+                      .eq('id', transferData.organization_level_1_id)
+                      .single()
+                    orgLevel1 = org1Data
+                    console.log(`useEmployees - 社員${emp.employee_id}の第一階層組織:`, org1Data)
+                  }
 
-      // Transform data to match Employee type
-      const employees: Employee[] = (data || []).map((emp) => {
-        let currentAssignment = undefined
-        
-        if (emp.current_organization_id && emp.current_position) {
-          currentAssignment = {
-            id: emp.current_assignment_id,
-            employee_id: emp.id,
-            organization_id: emp.current_organization_id,
-            position: emp.current_position,
-            staff_rank: emp.current_staff_rank,
-            start_date: emp.current_assignment_start_date,
-            transfer_type: 'transfer' as const,
-            created_at: emp.created_at,
-            updated_at: emp.updated_at,
-            organization: {
-              id: emp.current_organization_id,
-              name: emp.current_organization_name,
-              level: emp.current_organization_level,
-              type: emp.current_organization_type,
-              created_at: emp.created_at,
-              updated_at: emp.updated_at
+                  if (transferData.organization_level_2_id) {
+                    const { data: org2Data } = await supabase
+                      .from('organizations')
+                      .select('*')
+                      .eq('id', transferData.organization_level_2_id)
+                      .single()
+                    orgLevel2 = org2Data
+                    console.log(`useEmployees - 社員${emp.employee_id}の第二階層組織:`, org2Data)
+                  }
+
+                  if (transferData.organization_level_3_id) {
+                    const { data: org3Data } = await supabase
+                      .from('organizations')
+                      .select('*')
+                      .eq('id', transferData.organization_level_3_id)
+                      .single()
+                    orgLevel3 = org3Data
+                    console.log(`useEmployees - 社員${emp.employee_id}の第三階層組織:`, org3Data)
+                  }
+
+                  // staff_rank_master_idカラムが存在する場合のみ実行
+                  if (transferData.staff_rank_master_id && 'staff_rank_master_id' in transferData) {
+                    try {
+                      const { data: srmData } = await supabase
+                        .from('staff_rank_master')
+                        .select('*')
+                        .eq('id', transferData.staff_rank_master_id)
+                        .single()
+                      staffRankMaster = srmData
+                    } catch (srmError) {
+                      console.warn(`useEmployees - スタッフランクマスター取得エラー (社員${emp.employee_id}):`, srmError)
+                    }
+                  }
+                } catch (orgError) {
+                  console.warn(`useEmployees - 組織情報取得エラー (社員${emp.employee_id}):`, orgError)
+                }
+
+                currentAssignment = {
+                  id: transferData.id,
+                  employee_id: emp.id,
+                  organization_level_1_id: transferData.organization_level_1_id,
+                  organization_level_2_id: transferData.organization_level_2_id,
+                  organization_level_3_id: transferData.organization_level_3_id,
+                  position: transferData.position,
+                  staff_rank_master_id: transferData.staff_rank_master_id || undefined,
+                  start_date: transferData.start_date,
+                  transfer_type: transferData.transfer_type,
+                  created_at: transferData.created_at,
+                  updated_at: transferData.updated_at,
+                  organization_level_1: orgLevel1,
+                  organization_level_2: orgLevel2,
+                  organization_level_3: orgLevel3,
+                  staff_rank_master: staffRankMaster
+                }
+              }
+
+              // フィルター適用
+              let shouldInclude = true
+              
+              if (filters?.search) {
+                const searchTerm = filters.search.toLowerCase()
+                const searchableText = [
+                  emp.last_name,
+                  emp.first_name,
+                  emp.employee_id
+                ].join(' ').toLowerCase()
+                shouldInclude = searchableText.includes(searchTerm)
+              }
+
+              if (shouldInclude && filters?.status) {
+                shouldInclude = emp.status === filters.status
+              }
+
+              if (shouldInclude && filters?.job_type) {
+                shouldInclude = emp.job_type === filters.job_type
+              }
+
+              if (shouldInclude && filters?.employment_type) {
+                shouldInclude = emp.employment_type === filters.employment_type
+              }
+
+              if (shouldInclude && filters?.organization_id) {
+                const currentOrgId = currentAssignment?.organization_level_3_id || 
+                                   currentAssignment?.organization_level_2_id || 
+                                   currentAssignment?.organization_level_1_id
+                shouldInclude = currentOrgId === filters.organization_id
+              }
+
+              if (!shouldInclude) {
+                return null
+              }
+
+              return {
+                id: emp.id,
+                employee_id: emp.employee_id,
+                last_name: emp.last_name,
+                first_name: emp.first_name,
+                last_name_kana: emp.last_name_kana,
+                first_name_kana: emp.first_name_kana,
+                roman_name: emp.roman_name,
+                job_type: emp.job_type,
+                employment_type: emp.employment_type,
+                gender: emp.gender,
+                status: emp.status,
+                hire_date: emp.hire_date,
+                resign_date: emp.resign_date,
+                phone: emp.phone,
+                gmail: emp.gmail,
+                is_mail: emp.is_mail,
+                common_password: emp.common_password,
+                created_at: emp.created_at,
+                updated_at: emp.updated_at,
+                current_assignment: currentAssignment
+              }
+            } catch (error) {
+              console.error(`useEmployees - 社員${emp.employee_id}の処理エラー:`, error)
+              // エラーが発生しても社員データは返す（current_assignmentはundefined）
+              return {
+                ...emp,
+                current_assignment: undefined
+              }
             }
-          }
-        }
+          })
+        )
 
-        return {
-          id: emp.id,
-          employee_id: emp.employee_id,
-          last_name: emp.last_name,
-          first_name: emp.first_name,
-          last_name_kana: emp.last_name_kana,
-          first_name_kana: emp.first_name_kana,
-          roman_name: emp.roman_name,
-          job_type: emp.job_type,
-          employment_type: emp.employment_type,
-          gender: emp.gender,
-          status: emp.status,
-          hire_date: emp.hire_date,
-          resign_date: emp.resign_date,
-          phone: emp.phone,
-          gmail: emp.gmail,
-          is_mail: emp.is_mail,
-          common_password: emp.common_password,
-          created_at: emp.created_at,
-          updated_at: emp.updated_at,
-          current_assignment: currentAssignment
-        }
-      })
+        // nullを除外してフィルタリング
+        const filteredEmployees = employees.filter(Boolean) as Employee[]
+        
+        console.log('useEmployees - 最終結果:', filteredEmployees.length, '件')
+        return filteredEmployees
 
-      return employees
+      } catch (error) {
+        console.error('useEmployees - 全体エラー:', error)
+        throw error
+      }
     }
   })
 }
@@ -130,21 +234,63 @@ export const useEmployee = (id: string) => {
           .single()
 
         if (!transferError && transferData) {
-          // 3. 組織情報を取得
-          const { data: orgData, error: orgError } = await supabase
-            .from('organizations')
-            .select('*')
-            .eq('id', transferData.organization_id)
-            .single()
+          // 組織情報を個別に取得
+          let orgLevel1 = null
+          let orgLevel2 = null
+          let orgLevel3 = null
+          let staffRankMaster = null
 
-          if (!orgError && orgData) {
-            currentAssignment = {
-              ...transferData,
-              organization: orgData
+          try {
+            if (transferData.organization_level_1_id) {
+              const { data: org1Data } = await supabase
+                .from('organizations')
+                .select('*')
+                .eq('id', transferData.organization_level_1_id)
+                .single()
+              orgLevel1 = org1Data
             }
-          } else {
-            console.log('useEmployee - 組織情報取得エラー:', orgError)
-            currentAssignment = transferData
+
+            if (transferData.organization_level_2_id) {
+              const { data: org2Data } = await supabase
+                .from('organizations')
+                .select('*')
+                .eq('id', transferData.organization_level_2_id)
+                .single()
+              orgLevel2 = org2Data
+            }
+
+            if (transferData.organization_level_3_id) {
+              const { data: org3Data } = await supabase
+                .from('organizations')
+                .select('*')
+                .eq('id', transferData.organization_level_3_id)
+                .single()
+              orgLevel3 = org3Data
+            }
+
+            // staff_rank_master_idカラムが存在する場合のみ実行
+            if (transferData.staff_rank_master_id && 'staff_rank_master_id' in transferData) {
+              try {
+                const { data: srmData } = await supabase
+                  .from('staff_rank_master')
+                  .select('*')
+                  .eq('id', transferData.staff_rank_master_id)
+                  .single()
+                staffRankMaster = srmData
+              } catch (srmError) {
+                console.warn('useEmployee - スタッフランクマスター取得エラー:', srmError)
+              }
+            }
+          } catch (orgError) {
+            console.warn('useEmployee - 組織情報取得エラー:', orgError)
+          }
+
+          currentAssignment = {
+            ...transferData,
+            organization_level_1: orgLevel1,
+            organization_level_2: orgLevel2,
+            organization_level_3: orgLevel3,
+            staff_rank_master: staffRankMaster
           }
         }
       } catch (error) {

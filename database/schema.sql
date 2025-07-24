@@ -259,13 +259,13 @@ INSERT INTO employees (employee_id, last_name, first_name, last_name_kana, first
 ON CONFLICT (employee_id) DO NOTHING;
 
 -- Insert sample transfer history data
-INSERT INTO transfer_histories (employee_id, organization_id, position, staff_rank, transfer_type, start_date) VALUES
-  ((SELECT id FROM employees WHERE employee_id = '00001'), (SELECT id FROM organizations WHERE name = '営業1課'), '営業担当', 'C', 'hire', '2020-04-01'),
-  ((SELECT id FROM employees WHERE employee_id = '00002'), (SELECT id FROM organizations WHERE name = 'フロントエンドチーム'), 'エンジニア', 'D', 'hire', '2021-07-01'),
-  ((SELECT id FROM employees WHERE employee_id = '00003'), (SELECT id FROM organizations WHERE name = '営業2課'), '営業担当', 'C', 'hire', '2019-10-01'),
-  ((SELECT id FROM employees WHERE employee_id = '00004'), (SELECT id FROM organizations WHERE name = 'バックエンドチーム'), 'エンジニア', 'E', 'hire', '2022-01-15'),
-  ((SELECT id FROM employees WHERE employee_id = '00005'), (SELECT id FROM organizations WHERE name = '営業1課'), '営業担当', 'B', 'hire', '2018-03-01'),
-  ((SELECT id FROM employees WHERE employee_id = '14005'), (SELECT id FROM organizations WHERE name = '特別プロジェクト推進室'), '室長', 'A', 'hire', '2014-04-01')
+INSERT INTO transfer_histories (employee_id, organization_id, position, staff_rank_master_id, transfer_type, start_date) VALUES
+  ((SELECT id FROM employees WHERE employee_id = '00001'), (SELECT id FROM organizations WHERE name = '営業1課'), '営業担当', (SELECT id FROM staff_rank_master WHERE organization_id = (SELECT id FROM organizations WHERE name = '営業1課') AND staff_rank = 'C' AND is_current = true LIMIT 1), 'hire', '2020-04-01'),
+  ((SELECT id FROM employees WHERE employee_id = '00002'), (SELECT id FROM organizations WHERE name = 'フロントエンドチーム'), 'エンジニア', (SELECT id FROM staff_rank_master WHERE organization_id = (SELECT id FROM organizations WHERE name = 'フロントエンドチーム') AND staff_rank = 'D' AND is_current = true LIMIT 1), 'hire', '2021-07-01'),
+  ((SELECT id FROM employees WHERE employee_id = '00003'), (SELECT id FROM organizations WHERE name = '営業2課'), '営業担当', (SELECT id FROM staff_rank_master WHERE organization_id = (SELECT id FROM organizations WHERE name = '営業2課') AND staff_rank = 'C' AND is_current = true LIMIT 1), 'hire', '2019-10-01'),
+  ((SELECT id FROM employees WHERE employee_id = '00004'), (SELECT id FROM organizations WHERE name = 'バックエンドチーム'), 'エンジニア', (SELECT id FROM staff_rank_master WHERE organization_id = (SELECT id FROM organizations WHERE name = 'バックエンドチーム') AND staff_rank = 'E' AND is_current = true LIMIT 1), 'hire', '2022-01-15'),
+  ((SELECT id FROM employees WHERE employee_id = '00005'), (SELECT id FROM organizations WHERE name = '営業1課'), '営業担当', (SELECT id FROM staff_rank_master WHERE organization_id = (SELECT id FROM organizations WHERE name = '営業1課') AND staff_rank = 'B' AND is_current = true LIMIT 1), 'hire', '2018-03-01'),
+  ((SELECT id FROM employees WHERE employee_id = '14005'), (SELECT id FROM organizations WHERE name = '特別プロジェクト推進室'), '室長', (SELECT id FROM staff_rank_master WHERE organization_id = (SELECT id FROM organizations WHERE name = '特別プロジェクト推進室') AND staff_rank = 'A' AND is_current = true LIMIT 1), 'hire', '2014-04-01')
 ON CONFLICT DO NOTHING;
 
 -- Create view for employees with current assignment
@@ -292,7 +292,7 @@ SELECT
   e.updated_at,
   th.id as current_assignment_id,
   th.position as current_position,
-  th.staff_rank as current_staff_rank,
+  srm.staff_rank as current_staff_rank,
   th.start_date as current_assignment_start_date,
   o.id as current_organization_id,
   o.name as current_organization_name,
@@ -306,7 +306,8 @@ LEFT JOIN LATERAL (
   ORDER BY th2.start_date DESC
   LIMIT 1
 ) th ON true
-LEFT JOIN organizations o ON th.organization_id = o.id;
+LEFT JOIN organizations o ON th.organization_id = o.id
+LEFT JOIN staff_rank_master srm ON th.staff_rank_master_id = srm.id;
 
 -- Enable RLS for the view
 ALTER VIEW employees_with_current_assignment ENABLE ROW LEVEL SECURITY;

@@ -170,31 +170,43 @@ export type Database = {
         Row: {
           id: string
           employee_id: string
-          organization_id: string
+          organization_level_1_id: string | null
+          organization_level_2_id: string | null
+          organization_level_3_id: string | null
           position: string | null
-          staff_rank: string | null
-          transfer_type: string
+          staff_rank_master_id: string | null
           start_date: string
+          end_date: string | null
+          reason: string | null
+          notes: string | null
           organization_snapshot: any | null
           created_at: string
           updated_at: string
         }
         Insert: {
           employee_id: string
-          organization_id: string
+          organization_level_1_id?: string | null
+          organization_level_2_id?: string | null
+          organization_level_3_id?: string | null
           position?: string | null
-          staff_rank?: string | null
-          transfer_type?: string
+          staff_rank_master_id?: string | null
           start_date: string
+          end_date?: string | null
+          reason?: string | null
+          notes?: string | null
           organization_snapshot?: any | null
         }
         Update: {
           employee_id?: string
-          organization_id?: string
+          organization_level_1_id?: string | null
+          organization_level_2_id?: string | null
+          organization_level_3_id?: string | null
           position?: string | null
-          staff_rank?: string | null
-          transfer_type?: string
+          staff_rank_master_id?: string | null
           start_date?: string
+          end_date?: string | null
+          reason?: string | null
+          notes?: string | null
           organization_snapshot?: any | null
         }
       }

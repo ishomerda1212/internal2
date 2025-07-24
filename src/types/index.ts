@@ -47,20 +47,23 @@ export interface Employee {
 export interface TransferHistory {
   id: string
   employee_id: string
-  organization_id: string
+  organization_level_1_id?: string
+  organization_level_2_id?: string
+  organization_level_3_id?: string
   position: string
-  staff_rank?: string
+  staff_rank_master_id?: string
   start_date: string
   end_date?: string
-  transfer_type: 'hire' | 'transfer' | 'promotion' | 'demotion' | 'lateral'
   reason?: string
   notes?: string
   organization_snapshot?: any
   created_at: string
   updated_at: string
-  organization?: Organization
-  organizations?: Organization[]
+  organization_level_1?: Organization
+  organization_level_2?: Organization
+  organization_level_3?: Organization
   employee?: Employee
+  staff_rank_master?: StaffRankMaster
 }
 
 export interface EmployeeFilters {

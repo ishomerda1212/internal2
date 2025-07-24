@@ -6,8 +6,9 @@ import { X } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
-import { useOrganizations, useAllOrganizations } from '../../hooks/useOrganizations'
+import { useOrganizationsByLevel, useOrganizationsByParent } from '../../hooks/useOrganizations'
 import { useCreateTransfer } from '../../hooks/useTransferHistory'
+import { useStaffRankMasterByOrganization } from '../../hooks/useStaffRankMaster'
 import type { Organization } from '../../types'
 
 interface TransferFormProps {
@@ -17,9 +18,11 @@ interface TransferFormProps {
 }
 
 const schema = yup.object({
-  organization_id: yup.string().required('配属先組織は必須です'),
-  position: yup.string().optional().default(''),
-  staff_rank: yup.string().optional().default(''),
+  organization_level_1_id: yup.string().optional().nullable().default(''),
+  organization_level_2_id: yup.string().optional().nullable().default(''),
+  organization_level_3_id: yup.string().optional().nullable().default(''),
+  position: yup.string().optional().nullable().default(''),
+  staff_rank_master_id: yup.string().optional().nullable().default(''),
   start_date: yup.string().required('開始日は必須です')
 })
 
@@ -30,60 +33,62 @@ export const TransferForm: React.FC<TransferFormProps> = ({
   onClose,
   onSuccess
 }) => {
-  const { data: organizations = [] } = useOrganizations()
-  const { data: allOrganizations = [] } = useAllOrganizations()
+  const { data: level1Organizations = [] } = useOrganizationsByLevel(1)
+  const { data: level2Organizations = [] } = useOrganizationsByLevel(2)
+  const { data: level3Organizations = [] } = useOrganizationsByLevel(3)
   const createTransfer = useCreateTransfer()
-  const [organizationOptions, setOrganizationOptions] = useState<{ value: string, label: string, isPast?: boolean }[]>([
-    { value: '', label: '選択してください' }
-  ])
+  
+  const [selectedLevel1Id, setSelectedLevel1Id] = useState<string>('')
+  const [selectedLevel2Id, setSelectedLevel2Id] = useState<string>('')
+  const [selectedLevel3Id, setSelectedLevel3Id] = useState<string>('')
+  
+  // 選択された組織に基づいてスタッフランクマスターを取得
+  const { data: staffRankMasters } = useStaffRankMasterByOrganization(selectedLevel3Id || selectedLevel2Id || selectedLevel1Id)
   
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting }
+    formState: { errors, isSubmitting },
+    watch,
+    setValue
   } = useForm<FormData>({
     resolver: yupResolver(schema),
     defaultValues: {
-      start_date: new Date().toISOString().split('T')[0] // 今日の日付
+      start_date: new Date().toISOString().split('T')[0]
     }
   })
-  
-  // 組織オプション（現在・過去を含む）
-  const getOrganizationOptions = (orgs: Organization[]): { value: string, label: string, isPast?: boolean }[] => {
-    const result: { value: string, label: string, isPast?: boolean }[] = []
-    
-    orgs.forEach(org => {
-      // 親組織名を取得
-      const parentName = org.parent ? ` (${org.parent.name})` : ''
-      
-      // デバッグ用: 各組織の親組織情報を確認
-      console.log(`組織: ${org.name}, parent_id: ${org.parent_id}, parent:`, org.parent)
-      
-      result.push({
-        value: org.id,
-        label: `${org.name}${parentName}`,
-        isPast: !org.is_current
-      })
-    })
-    
-    return result
-  }
-  
-  // allOrganizationsデータが更新されたときにorganizationOptionsを再計算
+
+  const watchedLevel1Id = watch('organization_level_1_id')
+  const watchedLevel2Id = watch('organization_level_2_id')
+  const watchedLevel3Id = watch('organization_level_3_id')
+
+  // 階層1が変更されたときの処理
   useEffect(() => {
-    if (allOrganizations && allOrganizations.length > 0) {
-      const options = [
-        { value: '', label: '選択してください' },
-        ...getOrganizationOptions(allOrganizations)
-      ]
-      setOrganizationOptions(options)
-      
-      // デバッグ用: 組織データを確認
-      console.log('TransferForm - allOrganizations:', allOrganizations)
-      console.log('TransferForm - organizationOptions:', options)
+    setSelectedLevel1Id(watchedLevel1Id || '')
+    if (watchedLevel1Id) {
+      setValue('organization_level_2_id', '')
+      setValue('organization_level_3_id', '')
+      setValue('staff_rank_master_id', '')
     }
-  }, [allOrganizations])
-  
+  }, [watchedLevel1Id, setValue])
+
+  // 階層2が変更されたときの処理
+  useEffect(() => {
+    setSelectedLevel2Id(watchedLevel2Id || '')
+    if (watchedLevel2Id) {
+      setValue('organization_level_3_id', '')
+      setValue('staff_rank_master_id', '')
+    }
+  }, [watchedLevel2Id, setValue])
+
+  // 階層3が変更されたときの処理
+  useEffect(() => {
+    setSelectedLevel3Id(watchedLevel3Id || '')
+    if (watchedLevel3Id) {
+      setValue('staff_rank_master_id', '')
+    }
+  }, [watchedLevel3Id, setValue])
+
   const positionOptions = [
     { value: '', label: '選択してください' },
     { value: '代表取締役社長', label: '代表取締役社長' },
@@ -99,37 +104,37 @@ export const TransferForm: React.FC<TransferFormProps> = ({
     { value: '主任', label: '主任' },
     { value: '一般', label: '一般' }
   ]
-  
+
   const staffRankOptions = [
     { value: '', label: '選択してください' },
-    { value: 'S', label: 'S' },
-    { value: 'A', label: 'A' },
-    { value: 'B', label: 'B' },
-    { value: 'C', label: 'C' },
-    { value: 'D', label: 'D' },
-    { value: 'E', label: 'E' },
-    { value: 'F', label: 'F' },
-    { value: 'G', label: 'G' },
-    { value: 'H', label: 'H' }
+    ...(staffRankMasters?.map(srm => ({
+      value: srm.id,
+      label: `${srm.staff_rank} (¥${new Intl.NumberFormat('ja-JP').format(srm.personnel_costs + srm.maintenance_costs + srm.director_cost + srm.ad_costs)})`
+    })) || [])
   ]
-  
-  const onSubmit = async (data: FormData) => {
+
+    const onSubmit = async (data: FormData) => {
     try {
-      await createTransfer.mutateAsync({
+      const transferData = {
         employee_id: employeeId,
-        organization_id: data.organization_id,
-        position: data.position,
-        staff_rank: data.staff_rank,
-        start_date: data.start_date,
-        transfer_type: 'transfer' // デフォルトで異動
-      })
+        organization_level_1_id: data.organization_level_1_id === '' ? null : data.organization_level_1_id,
+        organization_level_2_id: data.organization_level_2_id === '' ? null : data.organization_level_2_id,
+        organization_level_3_id: data.organization_level_3_id === '' ? null : data.organization_level_3_id,
+        position: data.position || null,
+        staff_rank_master_id: data.staff_rank_master_id === '' ? null : data.staff_rank_master_id,
+        start_date: data.start_date
+      }
+      
+      console.log('送信データ:', transferData)
+      
+      await createTransfer.mutateAsync(transferData)
       onSuccess()
       onClose()
     } catch (error) {
       console.error('異動記録作成エラー:', error)
     }
   }
-  
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
@@ -146,10 +151,42 @@ export const TransferForm: React.FC<TransferFormProps> = ({
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Select
-              label="配属先組織"
-              {...register('organization_id')}
-              options={organizationOptions}
-              error={errors.organization_id?.message}
+              label="第一階層（部）"
+              {...register('organization_level_1_id')}
+              options={[
+                { value: '', label: '選択してください' },
+                ...level1Organizations.map(org => ({
+                  value: org.id,
+                  label: `${org.name} (${org.type})`
+                }))
+              ]}
+              error={errors.organization_level_1_id?.message}
+            />
+            
+            <Select
+              label="第二階層（チーム）"
+              {...register('organization_level_2_id')}
+              options={[
+                { value: '', label: '選択してください' },
+                ...level2Organizations.map(org => ({
+                  value: org.id,
+                  label: `${org.name} (${org.type})`
+                }))
+              ]}
+              error={errors.organization_level_2_id?.message}
+            />
+            
+            <Select
+              label="第三階層（課・店・室）"
+              {...register('organization_level_3_id')}
+              options={[
+                { value: '', label: '選択してください' },
+                ...level3Organizations.map(org => ({
+                  value: org.id,
+                  label: `${org.name} (${org.type})`
+                }))
+              ]}
+              error={errors.organization_level_3_id?.message}
             />
             
             <Select
@@ -161,9 +198,9 @@ export const TransferForm: React.FC<TransferFormProps> = ({
             
             <Select
               label="スタッフランク"
-              {...register('staff_rank')}
+              {...register('staff_rank_master_id')}
               options={staffRankOptions}
-              error={errors.staff_rank?.message}
+              error={errors.staff_rank_master_id?.message}
             />
             
             <Input
