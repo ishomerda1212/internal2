@@ -2,14 +2,21 @@ export interface Organization {
   id: string
   name: string
   level: number
-  type: string
+  type: '部' | 'チーム' | '課' | '店舗' | '室'
   representative_id?: string
   parent_id?: string
+  effective_date: string
+  end_date?: string
+  is_current: boolean
+  successor_id?: string
+  change_type?: string
+  change_date?: string
   created_at: string
   updated_at: string
   children?: Organization[]
   representative?: Employee
   employee_count?: number
+  parent?: Organization
 }
 
 export interface Employee {
@@ -48,9 +55,11 @@ export interface TransferHistory {
   transfer_type: 'hire' | 'transfer' | 'promotion' | 'demotion' | 'lateral'
   reason?: string
   notes?: string
+  organization_snapshot?: any
   created_at: string
   updated_at: string
   organization?: Organization
+  organizations?: Organization[]
   employee?: Employee
 }
 
@@ -100,4 +109,20 @@ export interface CarUsageHistory {
   updated_at: string
   car?: CompanyCar
   employee?: Employee
+}
+
+export interface StaffRankMaster {
+  id: string
+  staff_rank: string
+  organization_id: string
+  personnel_costs: number
+  maintenance_costs: number
+  director_cost: number
+  ad_costs: number
+  effective_date: string
+  end_date?: string
+  is_current: boolean
+  created_at: string
+  updated_at: string
+  organization?: Organization
 }

@@ -65,27 +65,27 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
           `}
           style={{ marginLeft: `${level * 20}px` }}
         >
-                      <div className="flex items-center space-x-2 flex-1 min-w-0">
-              {hasChildren ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    toggleExpanded(org.id)
-                  }}
-                  className="p-1 hover:bg-gray-200 rounded"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-500" />
-                  )}
-                </button>
-              ) : (
-                <div className="w-6" />
-              )}
-              
-              <Building2 className="h-5 w-5 text-gray-400 flex-shrink-0" />
-              
+          <div className="flex items-center space-x-2 flex-1 min-w-0">
+            {hasChildren ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleExpanded(org.id)
+                }}
+                className="p-1 hover:bg-gray-200 rounded"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                )}
+              </button>
+            ) : (
+              <div className="w-6" />
+            )}
+            
+            <Building2 className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            
               <div 
                 className="flex-1 min-w-0 cursor-pointer"
                 onClick={() => {
@@ -95,21 +95,21 @@ export const OrganizationTree: React.FC<OrganizationTreeProps> = ({
                   }
                 }}
               >
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-gray-900 truncate">
-                    {org.name}
-                  </span>
-                  <Badge size="sm" className={getOrgTypeColor(org.type)}>
-                    {org.type}
-                  </Badge>
-                </div>
-                {org.representative && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    責任者: {org.representative.last_name} {org.representative.first_name}
-                  </p>
-                )}
+              <div className="flex items-center space-x-2">
+                <span className="font-medium text-gray-900 truncate">
+                  {org.name}
+                </span>
+                <Badge size="sm" className={getOrgTypeColor(org.type)}>
+                  {org.type}
+                </Badge>
               </div>
+              {org.representative && (
+                <p className="text-xs text-gray-500 mt-1">
+                  責任者: {org.representative.last_name} {org.representative.first_name}
+                </p>
+              )}
             </div>
+          </div>
           
           <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {canCreate && (

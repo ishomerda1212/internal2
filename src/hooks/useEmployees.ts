@@ -12,7 +12,7 @@ export const useEmployees = (filters?: EmployeeFilters) => {
     queryKey: ['employees', filters],
     queryFn: async () => {
       let query = supabase
-        .from('employees')
+        .from('employees_with_current_assignment')
         .select('*')
         .order('employee_id', { ascending: true })
 
@@ -34,10 +34,9 @@ export const useEmployees = (filters?: EmployeeFilters) => {
         query = query.eq('employment_type', filters.employment_type)
       }
 
-      // TODO: organization_id filter will be implemented when transfer_history is properly linked
-      // if (filters?.organization_id) {
-      //   query = query.eq('transfer_history.organization_id', filters.organization_id)
-      // }
+      if (filters?.organization_id) {
+        query = query.eq('current_organization_id', filters.organization_id)
+      }
 
       const { data, error } = await query
 
@@ -46,10 +45,54 @@ export const useEmployees = (filters?: EmployeeFilters) => {
       }
 
       // Transform data to match Employee type
-      const employees: Employee[] = (data || []).map(emp => ({
-        ...emp,
-        current_assignment: undefined // TODO: Will be implemented when transfer_history is properly linked
-      }))
+      const employees: Employee[] = (data || []).map((emp) => {
+        let currentAssignment = undefined
+        
+        if (emp.current_organization_id && emp.current_position) {
+          currentAssignment = {
+            id: emp.current_assignment_id,
+            employee_id: emp.id,
+            organization_id: emp.current_organization_id,
+            position: emp.current_position,
+            staff_rank: emp.current_staff_rank,
+            start_date: emp.current_assignment_start_date,
+            transfer_type: 'transfer' as const,
+            created_at: emp.created_at,
+            updated_at: emp.updated_at,
+            organization: {
+              id: emp.current_organization_id,
+              name: emp.current_organization_name,
+              level: emp.current_organization_level,
+              type: emp.current_organization_type,
+              created_at: emp.created_at,
+              updated_at: emp.updated_at
+            }
+          }
+        }
+
+        return {
+          id: emp.id,
+          employee_id: emp.employee_id,
+          last_name: emp.last_name,
+          first_name: emp.first_name,
+          last_name_kana: emp.last_name_kana,
+          first_name_kana: emp.first_name_kana,
+          roman_name: emp.roman_name,
+          job_type: emp.job_type,
+          employment_type: emp.employment_type,
+          gender: emp.gender,
+          status: emp.status,
+          hire_date: emp.hire_date,
+          resign_date: emp.resign_date,
+          phone: emp.phone,
+          gmail: emp.gmail,
+          is_mail: emp.is_mail,
+          common_password: emp.common_password,
+          created_at: emp.created_at,
+          updated_at: emp.updated_at,
+          current_assignment: currentAssignment
+        }
+      })
 
       return employees
     }
@@ -60,7 +103,7 @@ export const useEmployee = (id: string) => {
   return useQuery({
     queryKey: ['employees', id],
     queryFn: async () => {
-      // 社員基本情報を取得
+      // 1. 社員基本情報を取得
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
         .select('*')
@@ -75,10 +118,38 @@ export const useEmployee = (id: string) => {
         throw new Error('社員が見つかりません')
       }
 
-      // 現在の所属情報を取得（end_dateがnullまたは未来の日付の最新レコード）
-      // 一時的にtransfer_historyの取得を無効化
+      // 2. 最新の異動履歴を取得
       let currentAssignment = undefined
-      // TODO: transfer_historyテーブルが作成されたら有効化
+      try {
+        const { data: transferData, error: transferError } = await supabase
+          .from('transfer_histories')
+          .select('*')
+          .eq('employee_id', id)
+          .order('start_date', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (!transferError && transferData) {
+          // 3. 組織情報を取得
+          const { data: orgData, error: orgError } = await supabase
+            .from('organizations')
+            .select('*')
+            .eq('id', transferData.organization_id)
+            .single()
+
+          if (!orgError && orgData) {
+            currentAssignment = {
+              ...transferData,
+              organization: orgData
+            }
+          } else {
+            console.log('useEmployee - 組織情報取得エラー:', orgError)
+            currentAssignment = transferData
+          }
+        }
+      } catch (error) {
+        console.log('useEmployee - 異動履歴取得エラー:', error)
+      }
 
       // Transform data to match Employee type
       const employee: Employee = {
@@ -87,9 +158,9 @@ export const useEmployee = (id: string) => {
       }
 
       // デバッグ用: 取得したデータを確認
-      console.log('useEmployee - raw data:', employeeData)
+      console.log('useEmployee - employee data:', employeeData)
       console.log('useEmployee - current assignment:', currentAssignment)
-      console.log('useEmployee - transformed employee:', employee)
+      console.log('useEmployee - final employee:', employee)
 
       return employee
     },

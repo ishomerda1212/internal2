@@ -49,25 +49,25 @@ export const EmployeeEditForm: React.FC<EmployeeEditFormProps> = ({
   console.log('EmployeeEditForm - employee data:', employee)
   
   const defaultValues = {
-    employee_id: employee.employee_id,
-    last_name: employee.last_name,
-    first_name: employee.first_name,
-    last_name_kana: employee.last_name_kana,
-    first_name_kana: employee.first_name_kana,
-    roman_name: employee.roman_name || '',
-    job_type: employee.job_type || '',
-    employment_type: employee.employment_type || '',
-    gender: employee.gender || '',
-    status: employee.status,
+      employee_id: employee.employee_id,
+      last_name: employee.last_name,
+      first_name: employee.first_name,
+      last_name_kana: employee.last_name_kana,
+      first_name_kana: employee.first_name_kana,
+      roman_name: employee.roman_name || '',
+      job_type: employee.job_type || '',
+      employment_type: employee.employment_type || '',
+      gender: employee.gender || '',
+      status: employee.status,
     hire_date: employee.hire_date ? employee.hire_date.split('T')[0] : '',
     resign_date: employee.resign_date ? employee.resign_date.split('T')[0] : '',
-    email: employee.email || '',
-    phone: employee.phone || '',
+      email: employee.email || '',
+      phone: employee.phone || '',
     gmail: employee.gmail || '',
     is_mail: employee.is_mail || '',
     common_password: employee.common_password || '',
-    remarks: employee.remarks || ''
-  }
+      remarks: employee.remarks || ''
+    }
   
   // デバッグ用: defaultValuesを確認
   console.log('EmployeeEditForm - defaultValues:', defaultValues)

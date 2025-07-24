@@ -6,7 +6,7 @@ import { X } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
-import { useOrganizations } from '../../hooks/useOrganizations'
+import { useOrganizations, useAllOrganizations } from '../../hooks/useOrganizations'
 import { useCreateTransfer } from '../../hooks/useTransferHistory'
 import type { Organization } from '../../types'
 
@@ -18,8 +18,8 @@ interface TransferFormProps {
 
 const schema = yup.object({
   organization_id: yup.string().required('配属先組織は必須です'),
-  position: yup.string().required('役職は必須です'),
-  staff_rank: yup.string().required('スタッフランクは必須です'),
+  position: yup.string().optional().default(''),
+  staff_rank: yup.string().optional().default(''),
   start_date: yup.string().required('開始日は必須です')
 })
 
@@ -31,8 +31,9 @@ export const TransferForm: React.FC<TransferFormProps> = ({
   onSuccess
 }) => {
   const { data: organizations = [] } = useOrganizations()
+  const { data: allOrganizations = [] } = useAllOrganizations()
   const createTransfer = useCreateTransfer()
-  const [organizationOptions, setOrganizationOptions] = useState<{ value: string, label: string }[]>([
+  const [organizationOptions, setOrganizationOptions] = useState<{ value: string, label: string, isPast?: boolean }[]>([
     { value: '', label: '選択してください' }
   ])
   
@@ -47,40 +48,41 @@ export const TransferForm: React.FC<TransferFormProps> = ({
     }
   })
   
-  // 組織オプション（階層表示）
-  const getOrganizationHierarchy = (orgs: Organization[], level: number = 0): { value: string, label: string }[] => {
-    const result: { value: string, label: string }[] = []
+  // 組織オプション（現在・過去を含む）
+  const getOrganizationOptions = (orgs: Organization[]): { value: string, label: string, isPast?: boolean }[] => {
+    const result: { value: string, label: string, isPast?: boolean }[] = []
     
     orgs.forEach(org => {
-      const indent = '　'.repeat(level) // 全角スペースでインデント
-      const hierarchyText = level > 0 ? `（${level}階層）` : ''
+      // 親組織名を取得
+      const parentName = org.parent ? ` (${org.parent.name})` : ''
+      
+      // デバッグ用: 各組織の親組織情報を確認
+      console.log(`組織: ${org.name}, parent_id: ${org.parent_id}, parent:`, org.parent)
+      
       result.push({
         value: org.id,
-        label: `${indent}${org.name}${hierarchyText}`
+        label: `${org.name}${parentName}`,
+        isPast: !org.is_current
       })
-      
-      if (org.children && org.children.length > 0) {
-        result.push(...getOrganizationHierarchy(org.children, level + 1))
-      }
     })
     
     return result
   }
   
-  // organizationsデータが更新されたときにorganizationOptionsを再計算
+  // allOrganizationsデータが更新されたときにorganizationOptionsを再計算
   useEffect(() => {
-    if (organizations && organizations.length > 0) {
+    if (allOrganizations && allOrganizations.length > 0) {
       const options = [
         { value: '', label: '選択してください' },
-        ...getOrganizationHierarchy(organizations)
+        ...getOrganizationOptions(allOrganizations)
       ]
       setOrganizationOptions(options)
       
       // デバッグ用: 組織データを確認
-      console.log('TransferForm - organizations:', organizations)
+      console.log('TransferForm - allOrganizations:', allOrganizations)
       console.log('TransferForm - organizationOptions:', options)
     }
-  }, [organizations])
+  }, [allOrganizations])
   
   const positionOptions = [
     { value: '', label: '選択してください' },

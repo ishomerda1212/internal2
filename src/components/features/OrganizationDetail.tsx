@@ -4,7 +4,7 @@ import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
 import { OrganizationEditForm } from '../forms/OrganizationEditForm'
-import { useOrganizationById, useDeleteOrganization } from '../../hooks/useOrganizations'
+import { useOrganizationById, useDeleteOrganization, useOrganizationHistory } from '../../hooks/useOrganizations'
 import { useEmployees } from '../../hooks/useEmployees'
 import { useAuthStore } from '../../stores/authStore'
 import { format } from 'date-fns'
@@ -26,31 +26,33 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
   const { checkPermission } = useAuthStore()
   const { data: organization, isLoading } = useOrganizationById(organizationId)
   const { data: employees = [] } = useEmployees({ organization_id: organizationId })
+  const { data: organizationHistory = [] } = useOrganizationHistory(organizationId)
   const deleteOrganization = useDeleteOrganization()
   const [showEditForm, setShowEditForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   
   const canUpdate = checkPermission('update', 'organizations')
   const canDelete = checkPermission('delete', 'organizations')
   
   const getOrgTypeColor = (type: string) => {
     switch (type) {
-      case 'headquarters': return 'bg-blue-100 text-blue-800'
-      case 'department': return 'bg-orange-100 text-orange-800'
-      case 'section': return 'bg-purple-100 text-purple-800'
-      case 'team': return 'bg-green-100 text-green-800'
-      case 'store': return 'bg-red-100 text-red-800'
+      case '部': return 'bg-blue-100 text-blue-800'
+      case 'チーム': return 'bg-orange-100 text-orange-800'
+      case '課': return 'bg-purple-100 text-purple-800'
+      case '店舗': return 'bg-red-100 text-red-800'
+      case '室': return 'bg-green-100 text-green-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
   
   const getOrgTypeLabel = (type: string) => {
     switch (type) {
-      case 'headquarters': return '本社'
-      case 'department': return '部'
-      case 'section': return '課'
-      case 'team': return 'チーム'
-      case 'store': return '店舗'
+      case '部': return '部'
+      case 'チーム': return 'チーム'
+      case '課': return '課'
+      case '店舗': return '店舗'
+      case '室': return '室'
       default: return type
     }
   }
@@ -402,6 +404,53 @@ export const OrganizationDetail: React.FC<OrganizationDetailProps> = ({
           </div>
         </Card>
       </div>
+      
+      {/* Organization History */}
+      {organizationHistory.length > 1 && (
+        <Card title="組織履歴">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                この組織は {organizationHistory.length} 回の変更履歴があります
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                {showHistory ? '履歴を隠す' : '履歴を表示'}
+              </Button>
+            </div>
+            
+            {showHistory && (
+              <div className="space-y-2">
+                {organizationHistory.map((history, index) => (
+                  <div key={history.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {history.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {format(new Date(history.effective_date), 'yyyy/MM/dd')} から
+                          {history.end_date ? ` ${format(new Date(history.end_date), 'yyyy/MM/dd')} まで` : ' 現在'}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge 
+                      size="sm" 
+                      variant={history.is_current ? 'success' : 'default'}
+                    >
+                      {history.is_current ? '現在' : '過去'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
       
       {/* Detailed Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

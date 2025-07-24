@@ -9,16 +9,18 @@ import { EmployeeList } from './components/features/EmployeeList'
 import { EmployeeDetail } from './components/features/EmployeeDetail'
 import { OrganizationTree } from './components/features/OrganizationTree'
 import { OrganizationDetail } from './components/features/OrganizationDetail'
+import { OrganizationManagement } from './components/features/OrganizationManagement'
 import { Building2 } from 'lucide-react'
 import { CompanyCarList } from './components/features/CompanyCarList'
 import { CompanyCarDetail } from './components/features/CompanyCarDetail'
 import { EmployeeCarAssignment } from './components/features/EmployeeCarAssignment'
+import { StaffRankMasterManagement } from './components/features/StaffRankMasterManagement'
 
 // Types
 import type { Employee, Organization, CompanyCar } from './types'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('employees')
+  const [currentPage, setCurrentPage] = useState('organization-tree')
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null)
   const [organizationViewMode, setOrganizationViewMode] = useState<'tree' | 'detail'>('tree')
@@ -30,9 +32,11 @@ function App() {
       case 'employees': return '社員管理'
       case 'upcoming-employees': return '入社予定者'
       case 'organizations': return '組織管理'
+      case 'organization-tree': return '組織構造'
       case 'company-cars': return '社用車管理'
       case 'company-car-detail': return '社用車詳細'
       case 'employee-car-assignment': return '社員・車両紐づけ'
+      case 'staff-rank-master': return 'スタッフランクマスター'
       case 'settings': return '設定'
       default: return '社員管理'
     }
@@ -42,10 +46,12 @@ function App() {
     switch (currentPage) {
       case 'employees': return '社員情報の管理と検索'
       case 'upcoming-employees': return '入社予定者の管理'
-      case 'organizations': return '組織構造の管理'
+      case 'organizations': return '組織の追加、編集、履歴管理'
+      case 'organization-tree': return '組織構造の表示と確認'
       case 'company-cars': return '社用車の管理と配置'
       case 'company-car-detail': return '社用車の詳細情報'
       case 'employee-car-assignment': return '社員と車両の紐づけ状況'
+      case 'staff-rank-master': return '組織別のスタッフランクとコスト設定'
       case 'settings': return 'システム設定'
       default: return ''
     }
@@ -96,6 +102,9 @@ function App() {
         )
       
       case 'organizations':
+        return <OrganizationManagement />
+      
+      case 'organization-tree':
         if (organizationViewMode === 'detail' && selectedOrganization) {
           return (
             <OrganizationDetail
@@ -157,6 +166,9 @@ function App() {
       
       case 'employee-car-assignment':
         return <EmployeeCarAssignment />
+      
+      case 'staff-rank-master':
+        return <StaffRankMasterManagement />
       
       case 'settings':
         return (

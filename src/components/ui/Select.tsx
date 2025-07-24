@@ -3,7 +3,7 @@ import React, { forwardRef } from 'react'
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
-  options: Array<{ value: string; label: string }>
+  options: Array<{ value: string; label: string; isPast?: boolean }>
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(({
@@ -35,7 +35,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(({
         {...props}
       >
         {options.map(option => (
-          <option key={option.value} value={option.value}>
+          <option 
+            key={option.value} 
+            value={option.value}
+            className={option.isPast ? 'bg-gray-100 text-gray-600' : ''}
+          >
             {option.label}
           </option>
         ))}

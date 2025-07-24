@@ -20,8 +20,9 @@ const schema = yup.object({
   name: yup.string().required('組織名は必須です'),
   type: yup.string().required('組織タイプは必須です'),
   level: yup.number().required('階層レベルは必須です'),
-  representative_id: yup.string().optional(),
-  parent_id: yup.string().optional()
+  representative_id: yup.string().optional().default(''),
+  parent_id: yup.string().optional().default(''),
+  effective_date: yup.string().required('有効開始日は必須です')
 })
 
 type FormData = yup.InferType<typeof schema>
@@ -47,7 +48,8 @@ export const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
       type: organization.type,
       level: organization.level,
       representative_id: organization.representative_id || '',
-      parent_id: organization.parent_id || ''
+      parent_id: organization.parent_id || '',
+      effective_date: organization.effective_date ? organization.effective_date.split('T')[0] : new Date().toISOString().split('T')[0]
     }
   })
   
@@ -59,15 +61,13 @@ export const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
     
     switch (level) {
       case 1:
-        return [...baseOptions, { value: '代表', label: '代表' }]
-      case 2:
         return [...baseOptions, { value: '部', label: '部' }]
+      case 2:
+        return [...baseOptions, { value: 'チーム', label: 'チーム' }]
       case 3:
         return [...baseOptions, 
           { value: '課', label: '課' },
-          { value: 'チーム', label: 'チーム' },
           { value: '店舗', label: '店舗' },
-          { value: '係', label: '係' },
           { value: '室', label: '室' }
         ]
       default:
@@ -124,7 +124,8 @@ export const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
         type: data.type,
         level: data.level,
         representative_id: data.representative_id || undefined,
-        parent_id: data.parent_id || undefined
+        parent_id: data.parent_id || undefined,
+        effective_date: data.effective_date
       })
       onSuccess()
       onClose()
@@ -179,6 +180,13 @@ export const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
             {...register('representative_id')}
             options={representativeOptions}
             error={errors.representative_id?.message}
+          />
+          
+          <Input
+            label="有効開始日"
+            type="date"
+            {...register('effective_date')}
+            error={errors.effective_date?.message}
           />
           
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">

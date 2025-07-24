@@ -1,5 +1,5 @@
 import React from 'react'
-import { Users, Building2, Settings, ChevronDown, ChevronRight, UserPlus, Car } from 'lucide-react'
+import { Users, Building2, Settings, ChevronDown, ChevronRight, UserPlus, Car, DollarSign } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 
 interface SidebarProps {
@@ -9,18 +9,22 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   const { user, checkPermission } = useAuthStore()
-  const [expandedMenus, setExpandedMenus] = React.useState<Set<string>>(new Set(['employees']))
+  const [expandedMenus, setExpandedMenus] = React.useState<Set<string>>(new Set(['organization-tree']))
   
   const menuItems = [
     { id: 'employees', label: '社員管理', icon: Users, permission: ['employees', 'read'] },
-    { id: 'organizations', label: '組織管理', icon: Building2, permission: ['organizations', 'read'] },
+    { id: 'organization-tree', label: '組織構造', icon: Building2, permission: ['organizations', 'read'] },
     { id: 'company-cars', label: '社用車管理', icon: Car, permission: ['organizations', 'read'] },
+    { id: 'staff-rank-master', label: 'スタッフランクマスター', icon: DollarSign, permission: ['organizations', 'read'] },
     { id: 'settings', label: '設定', icon: Settings, permission: null }
   ]
   
-  const subMenuItems = {
+  const subMenuItems: Record<string, Array<{ id: string; label: string; icon: any; permission: string[] }>> = {
     'employees': [
       { id: 'upcoming-employees', label: '入社予定者', icon: UserPlus, permission: ['employees', 'read'] }
+    ],
+    'organization-tree': [
+      { id: 'organizations', label: '組織管理', icon: Building2, permission: ['organizations', 'read'] }
     ],
     'company-cars': [
       { id: 'employee-car-assignment', label: '社員・車両紐づけ', icon: Users, permission: ['organizations', 'read'] }

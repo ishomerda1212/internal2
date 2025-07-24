@@ -42,6 +42,7 @@ export const useOrganizations = () => {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
+        .eq('is_current', true) // 現在の組織のみを取得
         .order('level', { ascending: true })
         .order('name', { ascending: true })
 
@@ -61,6 +62,7 @@ export const useOrganizationTree = () => {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
+        .eq('is_current', true) // 現在の組織のみを取得
         .order('level', { ascending: true })
         .order('name', { ascending: true })
 
@@ -145,6 +147,32 @@ export const useDeleteOrganization = () => {
   })
 }
 
+// 既存の組織の有効開始日を更新するフック
+export const useUpdateOrganizationEffectiveDate = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async ({ id, effective_date }: { id: string; effective_date: string }) => {
+      const { data: updatedOrganization, error } = await supabase
+        .from('organizations')
+        .update({ effective_date })
+        .eq('id', id)
+        .select('*')
+        .single()
+
+      if (error) {
+        throw new Error(`組織の有効開始日の更新に失敗しました: ${error.message}`)
+      }
+
+      return updatedOrganization
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizations'] })
+      queryClient.invalidateQueries({ queryKey: ['organizations', 'tree'] })
+    }
+  })
+}
+
 export const useOrganizationById = (id: string) => {
   return useQuery({
     queryKey: ['organizations', id],
@@ -153,6 +181,7 @@ export const useOrganizationById = (id: string) => {
         .from('organizations')
         .select('*')
         .eq('id', id)
+        .eq('is_current', true) // 現在の組織のみを取得
         .single()
 
       if (error) {
@@ -162,5 +191,138 @@ export const useOrganizationById = (id: string) => {
       return data
     },
     enabled: !!id
+  })
+}
+
+// 全組織データを取得するフック（現在・過去問わず）
+export const useAllOrganizations = () => {
+  return useQuery({
+    queryKey: ['organizations', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('level', { ascending: true })
+        .order('name', { ascending: true })
+
+      if (error) {
+        throw new Error(`組織データの取得に失敗しました: ${error.message}`)
+      }
+
+      // 親組織の情報を取得
+      const organizationsWithParents = await Promise.all(
+        (data || []).map(async (org) => {
+          if (org.parent_id) {
+            const { data: parent, error: parentError } = await supabase
+              .from('organizations')
+              .select('*')
+              .eq('id', org.parent_id)
+              .single()
+            
+            if (parentError) {
+              console.error(`親組織の取得エラー (${org.name}):`, parentError)
+            } else {
+              console.log(`親組織取得成功 (${org.name}):`, parent)
+            }
+            
+            return { ...org, parent }
+          }
+          return org
+        })
+      )
+
+      console.log('取得した全組織データ（親組織含む）:', organizationsWithParents)
+      return organizationsWithParents
+    }
+  })
+}
+
+// 組織履歴を取得するフック（successor_idを使用）
+export const useOrganizationHistory = (organizationId: string) => {
+  return useQuery({
+    queryKey: ['organization-history', organizationId],
+    queryFn: async () => {
+      // 選択された組織を取得
+      const { data: selectedOrg, error: selectedError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', organizationId)
+        .single()
+
+      if (selectedError) {
+        throw new Error(`組織データの取得に失敗しました: ${selectedError.message}`)
+      }
+
+      // 関連する履歴を取得
+      let historyData = [selectedOrg]
+
+      // 過去の組織の場合、後継組織を取得
+      if (!selectedOrg.is_current && selectedOrg.successor_id) {
+        const { data: successor, error: successorError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', selectedOrg.successor_id)
+          .single()
+
+        if (!successorError && successor) {
+          historyData.push(successor)
+        }
+      }
+
+      // 現在の組織の場合、前身組織を取得
+      if (selectedOrg.is_current) {
+        const { data: predecessors, error: predecessorError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('successor_id', selectedOrg.id)
+
+        if (!predecessorError && predecessors) {
+          historyData = [...predecessors, ...historyData]
+        }
+      }
+
+      // 親組織の情報を取得
+      const historyWithParents = await Promise.all(
+        historyData.map(async (org) => {
+          if (org.parent_id) {
+            const { data: parent } = await supabase
+              .from('organizations')
+              .select('*')
+              .eq('id', org.parent_id)
+              .single()
+            return { ...org, parent }
+          }
+          return org
+        })
+      )
+
+      // 日付順にソート
+      return historyWithParents.sort((a, b) => 
+        new Date(a.effective_date).getTime() - new Date(b.effective_date).getTime()
+      )
+    },
+    enabled: !!organizationId
+  })
+}
+
+export const useOrganizationsForStaffRankMaster = () => {
+  return useQuery({
+    queryKey: ['organizations', 'staff-rank-master'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('is_current', true)
+        .in('level', [1, 2]) // 1階層（部）と2階層（チーム）のみ
+        .not('name', 'ilike', '%管理部%') // 管理部とその子組織を除外
+        .order('level', { ascending: true })
+        .order('name', { ascending: true })
+
+      if (error) {
+        throw new Error(`組織データの取得に失敗しました: ${error.message}`)
+      }
+
+      return data || []
+    }
   })
 }

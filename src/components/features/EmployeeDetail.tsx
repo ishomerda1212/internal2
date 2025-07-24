@@ -32,6 +32,8 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
   
   // デバッグ用: employeeデータを確認
   console.log('EmployeeDetail - employee data:', employee)
+  console.log('EmployeeDetail - current_assignment:', employee?.current_assignment)
+  console.log('EmployeeDetail - current_assignment.organizations:', employee?.current_assignment?.organizations)
   console.log('EmployeeDetail - transferHistory data:', transferHistory)
   const [activeTab, setActiveTab] = useState<'basic' | 'transfer' | 'qualifications'>('basic')
   const [showEditForm, setShowEditForm] = useState(false)
@@ -364,7 +366,7 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
                       <div className="flex items-center space-x-2 mb-2">
                         {getTransferTypeBadge(transfer.transfer_type)}
                         <span className="text-sm font-medium text-gray-900">
-                          {transfer.organization?.name || `組織ID: ${transfer.organization_id}`}
+                          {transfer.organization_snapshot?.name || transfer.organization?.name || '-'}
                         </span>
                         <span className="text-sm text-gray-500">
                           {transfer.position}

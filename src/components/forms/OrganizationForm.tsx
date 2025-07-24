@@ -20,8 +20,9 @@ const schema = yup.object({
   name: yup.string().required('組織名は必須です'),
   type: yup.string().required('組織タイプは必須です'),
   level: yup.number().required('階層レベルは必須です'),
-  representative_id: yup.string().optional(),
-  parent_id: yup.string().optional()
+  representative_id: yup.string().optional().default(''),
+  parent_id: yup.string().optional().default(''),
+  effective_date: yup.string().required('有効開始日は必須です')
 })
 
 type FormData = yup.InferType<typeof schema>
@@ -44,7 +45,8 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     resolver: yupResolver(schema),
     defaultValues: {
       parent_id: parentId || '',
-      level: parentId ? 2 : 1 // 親がある場合は2、ない場合は1
+      level: parentId ? 2 : 1, // 親がある場合は2、ない場合は1
+      effective_date: new Date().toISOString().split('T')[0] // 今日の日付をデフォルトに
     }
   })
   
@@ -56,15 +58,13 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     
     switch (level) {
       case 1:
-        return [...baseOptions, { value: '代表', label: '代表' }]
-      case 2:
         return [...baseOptions, { value: '部', label: '部' }]
+      case 2:
+        return [...baseOptions, { value: 'チーム', label: 'チーム' }]
       case 3:
         return [...baseOptions, 
           { value: '課', label: '課' },
-          { value: 'チーム', label: 'チーム' },
           { value: '店舗', label: '店舗' },
-          { value: '係', label: '係' },
           { value: '室', label: '室' }
         ]
       default:
@@ -118,7 +118,9 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
         type: data.type,
         level: data.level,
         representative_id: data.representative_id || undefined,
-        parent_id: data.parent_id || undefined
+        parent_id: data.parent_id || undefined,
+        effective_date: data.effective_date,
+        is_current: true
       })
       onSuccess()
       onClose()
@@ -174,6 +176,13 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
             {...register('representative_id')}
             options={representativeOptions}
             error={errors.representative_id?.message}
+          />
+          
+          <Input
+            label="有効開始日"
+            type="date"
+            {...register('effective_date')}
+            error={errors.effective_date?.message}
           />
           
           <div className="flex justify-end space-x-3 pt-4">
