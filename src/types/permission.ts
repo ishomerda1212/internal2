@@ -33,12 +33,8 @@ export interface Role {
 }
 
 export interface UserRole {
-  id: string
   user_id: string
   role_id: string
-  assigned_at: string
-  assigned_by?: string
-  expires_at?: string
   role?: Role
 }
 

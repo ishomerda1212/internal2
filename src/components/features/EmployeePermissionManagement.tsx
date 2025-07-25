@@ -2,81 +2,87 @@ import React, { useState, useEffect } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
-import { useUserRoles, useAssignUserRole, useRemoveUserRole, useRoles, useUserPermissions } from '../../hooks/usePermissions'
+import { useEmployeeRoles, useAssignEmployeeRole, useRemoveEmployeeRole, useEmployeePermissions } from '../../hooks/useEmployeePermissions'
+import { useRoles } from '../../hooks/usePermissions'
 import { useAuthStore } from '../../stores/authStore'
-import { supabase } from '../../lib/supabase'
 
 interface EmployeePermissionManagementProps {
   employeeId: string
-  employeeEmail?: string
+  employeeGmail?: string
 }
 
 export const EmployeePermissionManagement: React.FC<EmployeePermissionManagementProps> = ({
   employeeId,
-  employeeEmail
+  employeeGmail
 }) => {
+  console.log('EmployeePermissionManagement - コンポーネント初期化開始')
+  console.log('employeeId:', employeeId)
+  console.log('employeeGmail:', employeeGmail)
+  
   const { user } = useAuthStore()
   const [selectedRoleId, setSelectedRoleId] = useState<string>('')
-  const [authUserId, setAuthUserId] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
-  const { data: roles = [] } = useRoles()
-  const { data: userRoles = [] } = useUserRoles(authUserId)
-  const { data: userPermissions = [] } = useUserPermissions(authUserId)
+  const { data: roles = [], error: rolesError } = useRoles()
+  const { data: employeeRoles = [], error: employeeRolesError } = useEmployeeRoles(employeeId)
+  const { data: employeePermissions = [], error: employeePermissionsError } = useEmployeePermissions(employeeId)
   
-  const assignUserRole = useAssignUserRole()
-  const removeUserRole = useRemoveUserRole()
-  
-  // 社員のメールアドレスからSupabaseのユーザーIDを取得
+  // エラーが発生した場合の処理
   useEffect(() => {
-    const fetchAuthUserId = async () => {
-      if (!employeeEmail) {
-        setIsLoading(false)
-        return
-      }
-      
-      try {
-        // Supabaseのauth.usersテーブルに直接アクセスできないため、
-        // 管理者権限でユーザーIDを取得する必要があります
-        // 一時的にテスト用のユーザーIDを使用
-        if (employeeEmail === 'hr@example.com') {
-          setAuthUserId('a85ff2d0-d6ab-4478-ba31-c5da8c0a2f07') // hr@example.comのユーザーID
-        } else if (employeeEmail === 'manager@example.com') {
-          setAuthUserId('test-manager-id') // テスト用
-        } else {
-          setAuthUserId('test-employee-id') // テスト用
-        }
-      } catch (error) {
-        console.error('ユーザーID取得エラー:', error)
-      } finally {
-        setIsLoading(false)
-      }
+    if (rolesError) {
+      console.error('EmployeePermissionManagement - roles取得エラー:', rolesError)
+      setError(`ロール取得エラー: ${rolesError.message}`)
     }
-    
-    fetchAuthUserId()
-  }, [employeeEmail])
+    if (employeeRolesError) {
+      console.error('EmployeePermissionManagement - employeeRoles取得エラー:', employeeRolesError)
+      setError(`社員ロール取得エラー: ${employeeRolesError.message}`)
+    }
+    if (employeePermissionsError) {
+      console.error('EmployeePermissionManagement - employeePermissions取得エラー:', employeePermissionsError)
+      setError(`社員権限取得エラー: ${employeePermissionsError.message}`)
+    }
+  }, [rolesError, employeeRolesError, employeePermissionsError])
+  
+  const assignEmployeeRole = useAssignEmployeeRole()
+  const removeEmployeeRole = useRemoveEmployeeRole()
   
   const handleAssignRole = async () => {
-    if (!selectedRoleId || !authUserId || !user) return
+    console.log('handleAssignRole - 開始')
+    console.log('selectedRoleId:', selectedRoleId)
+    console.log('employeeId:', employeeId)
+    console.log('user:', user)
+    
+    if (!selectedRoleId || !employeeId || !user) {
+      console.log('handleAssignRole - 必要な値が不足しています')
+      return
+    }
     
     try {
-      await assignUserRole.mutateAsync({
-        userId: authUserId,
+      console.log('handleAssignRole - ロール割り当てを実行')
+      const result = await assignEmployeeRole.mutateAsync({
+        employeeId: employeeId,
         roleId: selectedRoleId,
-        assignedBy: user.id
+        assignedBy: user.email || 'システム'
       })
+      console.log('handleAssignRole - 成功:', result)
       setSelectedRoleId('')
     } catch (error) {
       console.error('ロール割り当てエラー:', error)
+      if (error instanceof Error) {
+        console.error('エラーの詳細:', {
+          message: error.message,
+          name: error.name
+        })
+      }
     }
   }
   
   const handleRemoveRole = async (roleId: string) => {
-    if (!authUserId) return
+    if (!employeeId) return
     
     try {
-      await removeUserRole.mutateAsync({
-        userId: authUserId,
+      await removeEmployeeRole.mutateAsync({
+        employeeId: employeeId,
         roleId
       })
     } catch (error) {
@@ -84,24 +90,19 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
     }
   }
   
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
-      </div>
-    )
-  }
-  
-  if (!authUserId) {
+  if (error) {
     return (
       <Card>
         <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">
-            この社員のシステムアカウントが見つかりません
+          <p className="text-red-500 mb-4">
+            権限管理コンポーネントでエラーが発生しました
           </p>
-          <p className="text-sm text-gray-400">
-            メールアドレス: {employeeEmail || '未設定'}
-          </p>
+          <details className="text-sm text-gray-600">
+            <summary className="cursor-pointer">エラーの詳細</summary>
+            <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded text-xs mt-2">
+              {error}
+            </pre>
+          </details>
         </div>
       </Card>
     )
@@ -116,19 +117,19 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
         {/* ロール一覧 */}
         <div className="mb-6">
           <h4 className="font-medium mb-3">割り当てられたロール</h4>
-          {userRoles.length > 0 ? (
+          {employeeRoles.length > 0 ? (
             <div className="space-y-2">
-              {userRoles.map(userRole => (
-                <div key={userRole.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {employeeRoles.map((employeeRole, index) => (
+                <div key={`${employeeRole.employee_id}-${employeeRole.role_id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <span className="font-medium">{userRole.role?.display_name}</span>
-                    <p className="text-sm text-gray-600">{userRole.role?.description}</p>
+                    <span className="font-medium">{employeeRole.role?.display_name}</span>
+                    <p className="text-sm text-gray-600">{employeeRole.role?.description}</p>
                   </div>
                   <Button
                     variant="danger"
                     size="sm"
-                    onClick={() => handleRemoveRole(userRole.role_id)}
-                    disabled={removeUserRole.isPending}
+                    onClick={() => handleRemoveRole(employeeRole.role_id)}
+                    disabled={removeEmployeeRole.isPending}
                   >
                     削除
                   </Button>
@@ -143,19 +144,29 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
         {/* 権限一覧 */}
         <div>
           <h4 className="font-medium mb-3">保有権限</h4>
-          {userPermissions.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {userPermissions.map((permission, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border">
-                  <div>
-                    <span className="text-sm font-medium">{permission.application_name}</span>
-                    <p className="text-xs text-gray-600">
-                      {permission.resource} - {permission.action}
-                    </p>
+          {employeePermissions.length > 0 ? (
+            <div className="space-y-4">
+              {/* アプリケーション別にグループ化 */}
+              {Array.from(new Set(employeePermissions.map(p => p.application_name))).map(appName => (
+                <div key={appName} className="border rounded-lg p-3">
+                  <h5 className="font-medium text-sm mb-2">{appName}</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {employeePermissions
+                      .filter(p => p.application_name === appName)
+                      .map((permission, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border">
+                          <div>
+                            <span className="text-xs font-medium">{permission.resource}</span>
+                            <p className="text-xs text-gray-600">
+                              {permission.action}
+                            </p>
+                          </div>
+                          <Badge variant="success" className="text-xs">
+                            {permission.role_name}
+                          </Badge>
+                        </div>
+                      ))}
                   </div>
-                  <Badge variant="success" className="text-xs">
-                    {permission.role_name}
-                  </Badge>
                 </div>
               ))}
             </div>
@@ -190,10 +201,10 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
           
           <Button
             onClick={handleAssignRole}
-            disabled={!selectedRoleId || assignUserRole.isPending}
+            disabled={!selectedRoleId || assignEmployeeRole.isPending}
             className="w-full"
           >
-            {assignUserRole.isPending ? '割り当て中...' : 'ロールを割り当て'}
+            {assignEmployeeRole.isPending ? '割り当て中...' : 'ロールを割り当て'}
           </Button>
         </div>
       </Card>
@@ -216,13 +227,23 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
               {/* このロールの権限一覧 */}
               <div className="text-xs text-gray-500">
                 <strong>権限:</strong>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {userPermissions
+                <div className="mt-1 space-y-2">
+                  {Array.from(new Set(employeePermissions
                     .filter(p => p.role_name === role.name)
-                    .map((permission, index) => (
-                      <span key={index} className="px-2 py-1 bg-gray-100 rounded">
-                        {permission.application_name}:{permission.resource}:{permission.action}
-                      </span>
+                    .map(p => p.application_name)))
+                    .map(appName => (
+                      <div key={appName}>
+                        <span className="font-medium">{appName}:</span>
+                        <div className="ml-2 flex flex-wrap gap-1">
+                          {employeePermissions
+                            .filter(p => p.role_name === role.name && p.application_name === appName)
+                            .map((permission, index) => (
+                              <span key={index} className="px-2 py-1 bg-gray-100 rounded">
+                                {permission.resource}:{permission.action}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
                     ))}
                 </div>
               </div>

@@ -8,6 +8,7 @@ import { TransferForm } from '../forms/TransferForm'
 import { TransferEditForm } from '../forms/TransferEditForm'
 import { QualificationForm } from '../forms/QualificationForm'
 import { EmployeePermissionManagement } from './EmployeePermissionManagement'
+import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { useEmployee } from '../../hooks/useEmployees'
 import { useTransferHistory } from '../../hooks/useTransferHistory'
 import { useAuthStore } from '../../stores/authStore'
@@ -475,10 +476,12 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
       )}
       
       {activeTab === 'permissions' && (
-        <EmployeePermissionManagement
-          employeeId={employeeId}
-          employeeEmail={employee.email}
-        />
+        <ErrorBoundary>
+          <EmployeePermissionManagement
+            employeeId={employee.employee_id}
+            employeeGmail={employee.gmail}
+          />
+        </ErrorBoundary>
       )}
       
       {/* Forms */}

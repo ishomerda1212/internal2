@@ -80,6 +80,7 @@ export const useUserRoles = (userId: string) => {
   return useQuery({
     queryKey: permissionKeys.userRoles(userId),
     queryFn: async (): Promise<UserRole[]> => {
+      console.log('useUserRoles - クエリ実行:', userId)
       const { data, error } = await supabase
         .from('user_roles')
         .select(`
@@ -87,13 +88,12 @@ export const useUserRoles = (userId: string) => {
           role:roles(*)
         `)
         .eq('user_id', userId)
-        .is('expires_at', null)
-        .order('assigned_at', { ascending: false })
       
+      console.log('useUserRoles - クエリ結果:', { data, error })
       if (error) throw error
       return data || []
     },
-    enabled: !!userId
+    enabled: !!userId && userId !== 'test-user-id'
   })
 }
 
@@ -102,15 +102,17 @@ export const useUserPermissions = (userId: string) => {
   return useQuery({
     queryKey: permissionKeys.userPermissions(userId),
     queryFn: async (): Promise<UserPermission[]> => {
+      console.log('useUserPermissions - クエリ実行:', userId)
       const { data, error } = await supabase
         .from('user_permissions')
         .select('*')
         .eq('user_id', userId)
       
+      console.log('useUserPermissions - クエリ結果:', { data, error })
       if (error) throw error
       return data || []
     },
-    enabled: !!userId
+    enabled: !!userId && userId !== 'test-user-id'
   })
 }
 
@@ -145,22 +147,16 @@ export const useAssignUserRole = () => {
   return useMutation({
     mutationFn: async ({ 
       userId, 
-      roleId, 
-      assignedBy, 
-      expiresAt 
+      roleId
     }: {
       userId: string
       roleId: string
-      assignedBy: string
-      expiresAt?: string
     }) => {
       const { data, error } = await supabase
         .from('user_roles')
         .insert({
           user_id: userId,
-          role_id: roleId,
-          assigned_by: assignedBy,
-          expires_at: expiresAt
+          role_id: roleId
         })
         .select()
         .single()
