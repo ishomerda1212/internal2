@@ -128,11 +128,6 @@ export const LoginForm: React.FC = () => {
             </Button>
           </div>
 
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              デモ用アカウント: hr@example.com / password123
-            </p>
-          </div>
         </form>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowLeft, Edit, Plus, Calendar, MapPin, Phone, Mail, User, Briefcase, FileText } from 'lucide-react'
+import { ArrowLeft, Edit, Plus, Calendar, MapPin, Phone, Mail, User, Briefcase, FileText, Shield } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
@@ -7,6 +7,7 @@ import { EmployeeEditForm } from '../forms/EmployeeEditForm'
 import { TransferForm } from '../forms/TransferForm'
 import { TransferEditForm } from '../forms/TransferEditForm'
 import { QualificationForm } from '../forms/QualificationForm'
+import { EmployeePermissionManagement } from './EmployeePermissionManagement'
 import { useEmployee } from '../../hooks/useEmployees'
 import { useTransferHistory } from '../../hooks/useTransferHistory'
 import { useAuthStore } from '../../stores/authStore'
@@ -36,16 +37,16 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
   console.log('EmployeeDetail - current_assignment:', employee?.current_assignment)
   console.log('EmployeeDetail - current_assignment.organizations:', employee?.current_assignment?.organizations)
   console.log('EmployeeDetail - transferHistory data:', transferHistory)
-  const [activeTab, setActiveTab] = useState<'basic' | 'transfer' | 'qualifications'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'transfer' | 'qualifications' | 'permissions'>('basic')
   const [showEditForm, setShowEditForm] = useState(false)
   const [showTransferForm, setShowTransferForm] = useState(false)
   const [showTransferEditForm, setShowTransferEditForm] = useState(false)
   const [editingTransfer, setEditingTransfer] = useState<any>(null)
   const [showQualificationForm, setShowQualificationForm] = useState(false)
   
-  const canUpdate = checkPermission('update', 'employees')
-  const canCreateTransfer = checkPermission('create', 'transfers')
-  const canUpdateTransfer = checkPermission('update', 'transfers')
+  const canUpdate = checkPermission({ application: 'internal', resource: 'employees', action: 'update' })
+  const canCreateTransfer = checkPermission({ application: 'internal', resource: 'transfers', action: 'create' })
+  const canUpdateTransfer = checkPermission({ application: 'internal', resource: 'transfers', action: 'update' })
   
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -215,6 +216,17 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
             }`}
           >
             資格・免許
+          </button>
+          <button
+            onClick={() => setActiveTab('permissions')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'permissions'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Shield className="h-4 w-4 mr-1 inline" />
+            権限設定
           </button>
         </nav>
       </div>
@@ -460,6 +472,13 @@ export const EmployeeDetail: React.FC<EmployeeDetailProps> = ({
             )}
           </div>
         </Card>
+      )}
+      
+      {activeTab === 'permissions' && (
+        <EmployeePermissionManagement
+          employeeId={employeeId}
+          employeeEmail={employee.email}
+        />
       )}
       
       {/* Forms */}
