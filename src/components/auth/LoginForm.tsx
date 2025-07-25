@@ -2,10 +2,11 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Eye, EyeOff, Mail, Lock, Building2 } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, Building2, Users } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { useAuthStore } from '../../stores/authStore'
+import { CustomLoginForm } from './CustomLoginForm'
 
 const schema = yup.object({
   email: yup.string().email('有効なメールアドレスを入力してください').required('メールアドレスは必須です'),
@@ -16,6 +17,7 @@ type FormData = yup.InferType<typeof schema>
 
 export const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
+  const [activeTab, setActiveTab] = useState<'admin' | 'employee'>('admin')
   const { login, isLoading } = useAuthStore()
   
   const {
@@ -68,7 +70,36 @@ export const LoginForm: React.FC = () => {
           </p>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        {/* タブ切り替え */}
+        <div className="flex rounded-lg bg-gray-100 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('admin')}
+            className={`flex-1 flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'admin'
+                ? 'bg-white text-orange-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            管理者ログイン
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('employee')}
+            className={`flex-1 flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'employee'
+                ? 'bg-white text-orange-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            社員ログイン
+          </button>
+        </div>
+        
+        {activeTab === 'admin' ? (
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             <Input
               label="メールアドレス"
@@ -129,6 +160,9 @@ export const LoginForm: React.FC = () => {
           </div>
 
         </form>
+        ) : (
+          <CustomLoginForm />
+        )}
       </div>
     </div>
   )

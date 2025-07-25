@@ -5,6 +5,8 @@ import { Badge } from '../ui/Badge'
 import { useEmployeeRoles, useAssignEmployeeRole, useRemoveEmployeeRole, useEmployeePermissions } from '../../hooks/useEmployeePermissions'
 import { useRoles } from '../../hooks/usePermissions'
 import { useAuthStore } from '../../stores/authStore'
+import { useCreateAuthUser, useDisableAuthUser, useGetAuthUserId } from '../../hooks/useAuthUserManagement'
+import { supabase } from '../../lib/supabase'
 
 interface EmployeePermissionManagementProps {
   employeeId: string
@@ -20,8 +22,39 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
   console.log('employeeGmail:', employeeGmail)
   
   const { user } = useAuthStore()
+  
+  // 社員データを取得
+  React.useEffect(() => {
+    const fetchEmployeeData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('employees')
+          .select('gmail, common_password')
+          .eq('employee_id', employeeId)
+          .single()
+        
+        if (error) {
+          console.error('社員データ取得エラー:', error)
+          setError('社員データの取得に失敗しました')
+          return
+        }
+        
+        setEmployeeData(data)
+        console.log('社員データ取得成功:', data)
+      } catch (error) {
+        console.error('社員データ取得エラー:', error)
+        setError('社員データの取得に失敗しました')
+      }
+    }
+    
+    if (employeeId) {
+      fetchEmployeeData()
+    }
+  }, [employeeId])
   const [selectedRoleId, setSelectedRoleId] = useState<string>('')
+  const [createAuthUser, setCreateAuthUser] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [employeeData, setEmployeeData] = useState<{ gmail?: string; common_password?: string } | null>(null)
   
   const { data: roles = [], error: rolesError } = useRoles()
   const { data: employeeRoles = [], error: employeeRolesError } = useEmployeeRoles(employeeId)
@@ -45,12 +78,30 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
   
   const assignEmployeeRole = useAssignEmployeeRole()
   const removeEmployeeRole = useRemoveEmployeeRole()
+  const createAuthUserMutation = useCreateAuthUser()
+  const disableAuthUserMutation = useDisableAuthUser()
+  const getAuthUserIdMutation = useGetAuthUserId()
+  
+  // 権限設定が可能かチェック
+  const canAssignPermissions = () => {
+    if (!employeeData) return false
+    return !!(employeeData.gmail && employeeData.common_password)
+  }
+  
+  // 不足している項目を取得
+  const getMissingFields = () => {
+    const missing = []
+    if (!employeeData?.gmail) missing.push('Gmailアドレス')
+    if (!employeeData?.common_password) missing.push('パスワード')
+    return missing
+  }
   
   const handleAssignRole = async () => {
     console.log('handleAssignRole - 開始')
     console.log('selectedRoleId:', selectedRoleId)
     console.log('employeeId:', employeeId)
     console.log('user:', user)
+    console.log('createAuthUser:', createAuthUser)
     
     if (!selectedRoleId || !employeeId || !user) {
       console.log('handleAssignRole - 必要な値が不足しています')
@@ -65,7 +116,32 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
         assignedBy: user.email || 'システム'
       })
       console.log('handleAssignRole - 成功:', result)
+      
+      // Authユーザー作成が必要な場合
+      if (createAuthUser && employeeData?.gmail && employeeData?.common_password) {
+        try {
+          console.log('Authユーザー作成を開始')
+          
+          // Authユーザーを作成
+          const authResult = await createAuthUserMutation.mutateAsync({
+            email: employeeData.gmail,
+            password: employeeData.common_password,
+            employeeId: employeeId
+          })
+          
+          console.log('Authユーザー作成成功:', authResult)
+          alert(`ロール割り当てとAuthユーザー作成が完了しました。\nログイン情報: ${employeeData.gmail} / ${employeeData.common_password}`)
+          
+        } catch (authError) {
+          console.error('Authユーザー作成エラー:', authError)
+          alert('ロール割り当ては成功しましたが、Authユーザーの作成に失敗しました。')
+        }
+      } else {
+        alert('ロール割り当てが完了しました。')
+      }
+      
       setSelectedRoleId('')
+      setCreateAuthUser(false)
     } catch (error) {
       console.error('ロール割り当てエラー:', error)
       if (error instanceof Error) {
@@ -85,9 +161,72 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
         employeeId: employeeId,
         roleId
       })
+      
+      // ロールが全て削除された場合、Authユーザーを無効化
+      const currentRoles = employeeRoles.filter(er => er.role_id !== roleId)
+      if (currentRoles.length === 0 && employeeData?.gmail) {
+        try {
+          console.log('全てのロールが削除されたため、Authユーザーを無効化します')
+          
+          // GmailからAuthユーザーIDを取得
+          const authUserId = await getAuthUserIdMutation.mutateAsync({
+            email: employeeData.gmail
+          })
+          
+          if (authUserId) {
+            // Authユーザーを無効化
+            await disableAuthUserMutation.mutateAsync({
+              userId: authUserId
+            })
+            console.log('Authユーザー無効化成功')
+            alert('ロール削除とAuthユーザー無効化が完了しました。')
+          }
+        } catch (authError) {
+          console.error('Authユーザー無効化エラー:', authError)
+          alert('ロール削除は成功しましたが、Authユーザーの無効化に失敗しました。')
+        }
+      } else {
+        alert('ロール削除が完了しました。')
+      }
     } catch (error) {
       console.error('ロール削除エラー:', error)
     }
+  }
+  
+  // データ読み込み中
+  if (!employeeData) {
+    return (
+      <Card>
+        <div className="text-center py-8">
+          <div className="text-blue-500 mb-4">
+            <p>社員データを取得中...</p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+  
+  // 権限設定に必要な情報が不足している場合
+  if (!canAssignPermissions()) {
+    const missingFields = getMissingFields()
+    return (
+      <Card>
+        <div className="text-center py-8">
+          <div className="text-yellow-600 mb-4">
+            <h3 className="text-lg font-semibold mb-2">権限設定不可</h3>
+            <p className="mb-3">権限設定には以下の項目が必要です：</p>
+            <ul className="list-disc list-inside mb-4 text-left max-w-md mx-auto">
+              {missingFields.map(field => (
+                <li key={field} className="text-yellow-700">{field}</li>
+              ))}
+            </ul>
+            <p className="text-sm text-yellow-600">
+              社員情報を編集して、Gmailアドレスとパスワードを設定してください。
+            </p>
+          </div>
+        </div>
+      </Card>
+    )
   }
   
   if (error) {
@@ -199,12 +338,36 @@ export const EmployeePermissionManagement: React.FC<EmployeePermissionManagement
             </select>
           </div>
           
+          {employeeData?.gmail && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="createAuthUser"
+                checked={createAuthUser}
+                onChange={(e) => setCreateAuthUser(e.target.checked)}
+                className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+              />
+              <label htmlFor="createAuthUser" className="ml-2 block text-sm text-gray-700">
+                Authユーザーを作成（Gmail + common_passwordでログイン可能）
+              </label>
+            </div>
+          )}
+          
+          {/* 社員情報の確認 */}
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">社員情報</h4>
+            <div className="space-y-1 text-sm">
+              <div><span className="font-medium">Gmail:</span> {employeeData?.gmail || '未設定'}</div>
+              <div><span className="font-medium">パスワード:</span> {employeeData?.common_password ? '設定済み' : '未設定'}</div>
+            </div>
+          </div>
+          
           <Button
             onClick={handleAssignRole}
-            disabled={!selectedRoleId || assignEmployeeRole.isPending}
+            disabled={!selectedRoleId || assignEmployeeRole.isPending || createAuthUserMutation.isPending}
             className="w-full"
           >
-            {assignEmployeeRole.isPending ? '割り当て中...' : 'ロールを割り当て'}
+            {assignEmployeeRole.isPending || createAuthUserMutation.isPending ? '処理中...' : 'ロールを割り当て'}
           </Button>
         </div>
       </Card>

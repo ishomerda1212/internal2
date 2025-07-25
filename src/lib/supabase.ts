@@ -2,8 +2,17 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Admin API用のクライアント（サービスロールキーを使用）
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 export type Database = {
   public: {
